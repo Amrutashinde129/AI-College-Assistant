@@ -13,3 +13,6 @@ faiss-cpu
 langchain-huggingface
 sentence-transformers
 huggingface_hub
+huggingface_hub
+streamlit
+requests
