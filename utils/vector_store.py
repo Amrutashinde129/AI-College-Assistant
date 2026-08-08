@@ -1,12 +1,12 @@
-from langchain_ollama import OllamaEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
 
 def create_vector_store(text):
 
-    # Create embeddings using Ollama
-    embeddings = OllamaEmbeddings(
-        model="nomic-embed-text"
+    # Create embeddings using Hugging Face
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
     # Split text into chunks
