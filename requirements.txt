@@ -1,22 +1,8 @@
 streamlit
-pandas
-numpy
-scikit-learn
-streamlit-option-menu
-PyMuPDF
-ollama
-groq
-<<<<<<< HEAD
 python-dotenv
-langchain-ollama
-langchain-community
-faiss-cpu
-langchain-huggingface
-sentence-transformers
-huggingface_hub
-huggingface_hub
-streamlit
 requests
-=======
-python-dotenv
->>>>>>> fc8f7a7 (Fix Hugging Face inference provider)
+huggingface_hub
+pymupdf
+faiss-cpu
+langchain
+langchain-community
