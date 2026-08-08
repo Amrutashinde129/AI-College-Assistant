@@ -2,7 +2,7 @@ import streamlit as st
 from huggingface_hub import InferenceClient
 
 
-MODEL_NAME = "HuggingFaceH4/zephyr-7b-beta"
+MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"
 
 
 def ask_ollama(prompt):
@@ -15,13 +15,18 @@ def ask_ollama(prompt):
             token=token
         )
 
-        response = client.text_generation(
-            prompt,
-            max_new_tokens=300,
+        response = client.chat_completion(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            max_tokens=300,
             temperature=0.2
         )
 
-        return response
+        return response.choices[0].message.content
 
     except KeyError:
         return "Hugging Face API token is not configured."
