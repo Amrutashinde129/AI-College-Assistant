@@ -2,7 +2,7 @@ import streamlit as st
 from huggingface_hub import InferenceClient
 
 
-MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"
+MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 
 
 def ask_ollama(prompt):
@@ -11,11 +11,12 @@ def ask_ollama(prompt):
         token = st.secrets["HF_TOKEN"]
 
         client = InferenceClient(
-            model=MODEL_NAME,
-            token=token
+            provider="hf-inference",
+            api_key=token
         )
 
         response = client.chat_completion(
+            model=MODEL_NAME,
             messages=[
                 {
                     "role": "user",
