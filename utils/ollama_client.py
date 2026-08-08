@@ -1,56 +1,30 @@
-import os
-import requests
+import streamlit as st
+from huggingface_hub import InferenceClient
 
 
-HF_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+MODEL_NAME = "HuggingFaceH4/zephyr-7b-beta"
 
 
 def ask_ollama(prompt):
 
-    api_key = os.getenv("HF_TOKEN")
-
-    if not api_key:
-        return "Hugging Face API token is not configured."
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "inputs": prompt,
-        "parameters": {
-            "temperature": 0.2,
-            "max_new_tokens": 300
-        }
-    }
-
     try:
-        response = requests.post(
-            HF_API_URL,
-            headers=headers,
-            json=data,
-            timeout=120
+        token = st.secrets["HF_TOKEN"]
+
+        client = InferenceClient(
+            model=MODEL_NAME,
+            token=token
         )
 
-        if response.status_code == 200:
-            result = response.json()
+        response = client.text_generation(
+            prompt,
+            max_new_tokens=300,
+            temperature=0.2
+        )
 
-            if isinstance(result, list) and result:
-                return result[0].get(
-                    "generated_text",
-                    "No response generated."
-                )
+        return response
 
-            return "No response generated."
-
-        return f"Hugging Face error: {response.status_code}"
-
-    except requests.exceptions.Timeout:
-        return "Hugging Face request timed out."
-
-    except requests.exceptions.ConnectionError:
-        return "Could not connect to Hugging Face."
+    except KeyError:
+        return "Hugging Face API token is not configured."
 
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Hugging Face error: {str(e)}"
