@@ -7,3 +7,4 @@ faiss-cpu
 langchain
 langchain-community
 streamlit-option-menu
+langchain-huggingface
