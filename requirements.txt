@@ -10,3 +10,5 @@ python-dotenv
 langchain-ollama
 langchain-community
 faiss-cpu
+langchain-huggingface
+sentence-transformers
