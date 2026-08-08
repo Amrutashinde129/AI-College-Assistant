@@ -1,4 +1,5 @@
 streamlit
+streamlit-option-menu
 python-dotenv
 requests
 huggingface_hub
@@ -6,5 +7,6 @@ pymupdf
 faiss-cpu
 langchain
 langchain-community
-streamlit-option-menu
 langchain-huggingface
+sentence-transformers
+torch
