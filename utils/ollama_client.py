@@ -21,13 +21,18 @@ def ask_ollama(prompt):
         if response.text:
             return response.text
 
-        return "❌ Gemini returned an empty response."
+        return "No response was generated."
 
     except KeyError:
-        return (
-            "❌ GEMINI_API_KEY is not configured. "
-            "Please add it to Streamlit Secrets."
-        )
+        return "❌ GEMINI_API_KEY is not configured."
 
     except Exception as e:
-        return f"❌ Gemini error: {str(e)}"
+        error = str(e)
+
+        if "429" in error or "RESOURCE_EXHAUSTED" in error:
+            return (
+                "⚠️ Gemini API quota has been reached. "
+                "Please try again later."
+            )
+
+        return f"❌ Gemini error: {error}"
