@@ -1,34 +1,26 @@
-import streamlit as st
 from utils.ollama_client import ask_ollama
 
 
 def answer_question(vector_store, question):
 
-    documents = vector_store.similarity_search(
-        question,
-        k=5
-    )
+    try:
+        documents = vector_store.similarity_search(
+            question,
+            k=5
+        )
 
-    # DEBUG: show what FAISS retrieved
-    st.write("### 🔍 Retrieved document content")
+        if not documents:
+            return "This information is not available in the uploaded document."
 
-    if not documents:
-        st.error("FAISS returned 0 documents.")
-        return "No relevant content was retrieved."
+        context = "\n\n".join(
+            document.page_content
+            for document in documents
+        )
 
-    for i, document in enumerate(documents):
-        st.write(f"**Chunk {i + 1}:**")
-        st.write(document.page_content)
-
-    context = "\n\n".join(
-        document.page_content
-        for document in documents
-    )
-
-    prompt = f"""
+        prompt = f"""
 You are an AI College Assistant.
 
-Use ONLY the information in the following college notes.
+Answer the user's question using only the college notes provided below.
 
 COLLEGE NOTES:
 {context}
@@ -36,10 +28,18 @@ COLLEGE NOTES:
 QUESTION:
 {question}
 
-Answer the question clearly and directly.
-
-If the answer is genuinely not present in the notes, say:
+INSTRUCTIONS:
+- Give a simple and clear answer.
+- Use only the information from the college notes.
+- You may combine information from multiple sections.
+- Do not invent information.
+- If the answer genuinely cannot be found in the notes, say:
 "This information is not available in the uploaded document."
+
+ANSWER:
 """
 
-    return ask_ollama(prompt)
+        return ask_ollama(prompt)
+
+    except Exception as e:
+        return f"❌ RAG error: {str(e)}"
