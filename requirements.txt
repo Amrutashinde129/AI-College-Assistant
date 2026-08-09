@@ -2,17 +2,6 @@ streamlit
 streamlit-option-menu
 python-dotenv
 requests
-huggingface_hub
-pymupdf
-faiss-cpu
-langchain
-langchain-community
-langchain-huggingface
-sentence-transformers
-torchstreamlit
-streamlit-option-menu
-python-dotenv
-requests
 pymupdf
 faiss-cpu
 langchain
