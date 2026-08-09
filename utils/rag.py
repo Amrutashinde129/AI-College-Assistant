@@ -2,12 +2,18 @@ from utils.ollama_client import ask_ollama
 
 
 def answer_question(vector_store, question):
-    documents = vector_store.similarity_search(question, k=3)
+
+    documents = vector_store.similarity_search(
+        question,
+        k=3
+    )
 
     context_parts = []
 
     for document in documents:
-        context_parts.append(document.page_content[:1500])
+        context_parts.append(
+            document.page_content[:1500]
+        )
 
     context = "\n\n".join(context_parts)
 
@@ -27,7 +33,7 @@ Rules:
 - Use only the provided notes.
 - Do not invent information.
 - If the answer is not in the notes, say:
-"This information is not available in the uploaded document."
+  "This information is not available in the uploaded document."
 """
 
     return ask_ollama(prompt)
