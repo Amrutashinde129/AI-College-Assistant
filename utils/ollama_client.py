@@ -1,8 +1,7 @@
 import streamlit as st
 from google import genai
 
-
-MODEL_NAME = "gemini-3.5-flash"
+MODEL_NAME = "gemini-2.5-flash"
 
 
 def ask_ollama(prompt):
@@ -19,10 +18,16 @@ def ask_ollama(prompt):
             contents=prompt
         )
 
-        return response.text
+        if response.text:
+            return response.text
+
+        return "❌ Gemini returned an empty response."
 
     except KeyError:
-        return "Gemini API key is not configured."
+        return (
+            "❌ GEMINI_API_KEY is not configured. "
+            "Please add it to Streamlit Secrets."
+        )
 
     except Exception as e:
-        return f"Gemini error: {str(e)}"
+        return f"❌ Gemini error: {str(e)}"
