@@ -11,3 +11,4 @@ sentence-transformers
 huggingface_hub
 torch
 torchvision
+google-genai

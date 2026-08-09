@@ -1,36 +1,26 @@
 import streamlit as st
-from huggingface_hub import InferenceClient
+from google import genai
 
-
-MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-
+MODEL_NAME = "gemini-3.5-flash"
 
 def ask_ollama(prompt):
 
-    try:
-        token = st.secrets["HF_TOKEN"]
+```
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
 
-        client = InferenceClient(
-            provider="hf-inference",
-            api_key=token
-        )
+    client = genai.Client(api_key=api_key)
 
-        response = client.chat_completion(
-            model=MODEL_NAME,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            max_tokens=300,
-            temperature=0.2
-        )
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=prompt
+    )
 
-        return response.choices[0].message.content
+    return response.text
 
-    except KeyError:
-        return "Hugging Face API token is not configured."
+except KeyError:
+    return "Gemini API key is not configured."
 
-    except Exception as e:
-        return f"Hugging Face error: {str(e)}"
+except Exception as e:
+    return f"Gemini error: {str(e)}"
+```
