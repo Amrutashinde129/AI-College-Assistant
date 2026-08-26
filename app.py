@@ -1,5 +1,6 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
+from datetime import date
 
 from utils.pdf_processor import extract_text_from_pdf
 from utils.vector_store import create_vector_store
@@ -12,7 +13,9 @@ from db_manager import (
     create_table,
     save_chat,
     get_chat_history,
-    clear_chat_history
+    clear_chat_history,
+    save_student_profile,
+    get_student_profile
 )
 
 
@@ -57,6 +60,13 @@ st.markdown("""
     margin-bottom: 15px;
 }
 
+.profile-card {
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid #ddd;
+    margin-bottom: 15px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -77,6 +87,7 @@ with st.sidebar:
         "Navigation",
         [
             "🏠 Dashboard",
+            "👤 Student Profile",
             "💬 AI Chat",
             "📝 Study Summary",
             "❓ MCQ Generator",
@@ -85,6 +96,7 @@ with st.sidebar:
         ],
         icons=[
             "house",
+            "person",
             "chat-dots",
             "file-text",
             "question-circle",
@@ -179,7 +191,7 @@ if selected == "🏠 Dashboard":
             ### 💬 AI Chat
 
             Ask questions about your uploaded
-            college notes using RAG and Ollama.
+            college notes using RAG and AI.
             """
         )
 
@@ -222,10 +234,10 @@ if selected == "🏠 Dashboard":
 
         st.markdown(
             """
-            ### 💾 Chat History
+            ### 👤 Student Profile
 
-            Keep track of your previous questions
-            and AI answers.
+            Save your academic information
+            for personalized study planning.
             """
         )
 
@@ -235,8 +247,8 @@ if selected == "🏠 Dashboard":
             """
             ### 🤖 Local AI
 
-            Powered by Ollama and Llama 3.2
-            running locally.
+            Powered by your configured
+            AI/RAG system.
             """
         )
 
@@ -255,6 +267,270 @@ if selected == "🏠 Dashboard":
             "👈 Upload a college PDF from the sidebar "
             "to get started."
         )
+
+
+# =====================================================
+# STUDENT PROFILE
+# =====================================================
+
+elif selected == "👤 Student Profile":
+
+    st.title("👤 Student Profile")
+
+    st.write(
+        "Enter your academic information. "
+        "This information will later be used by "
+        "the Smart Study Planner."
+    )
+
+    profile = get_student_profile()
+
+    # -------------------------------------------------
+    # DEFAULT VALUES
+    # -------------------------------------------------
+
+    if profile:
+
+        default_name = profile["name"] or ""
+        default_course = profile["course"] or ""
+        default_semester = profile["semester"] or ""
+        default_subjects = profile["subjects"] or ""
+        default_exam_date = profile["exam_date"]
+        default_hours = (
+            profile["daily_study_hours"]
+            if profile["daily_study_hours"] is not None
+            else 2.0
+        )
+        default_time = (
+            profile["preferred_study_time"]
+            or "Evening"
+        )
+
+    else:
+
+        default_name = ""
+        default_course = ""
+        default_semester = ""
+        default_subjects = ""
+        default_exam_date = None
+        default_hours = 2.0
+        default_time = "Evening"
+
+    # -------------------------------------------------
+    # PROFILE FORM
+    # -------------------------------------------------
+
+    with st.form("student_profile_form"):
+
+        st.subheader("📋 Academic Information")
+
+        name = st.text_input(
+            "Student Name",
+            value=default_name,
+            placeholder="Enter your name"
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            course = st.text_input(
+                "Course / Branch",
+                value=default_course,
+                placeholder="Example: Computer Engineering"
+            )
+
+        with col2:
+
+            semester = st.text_input(
+                "Semester",
+                value=default_semester,
+                placeholder="Example: 4th Semester"
+            )
+
+        subjects = st.text_area(
+            "Subjects",
+            value=default_subjects,
+            placeholder=(
+                "Enter subjects separated by commas\n"
+                "Example: OOP, DBMS, DSU, DTE"
+            )
+        )
+
+        st.subheader("📅 Study Information")
+
+        exam_date = st.date_input(
+            "Exam Date",
+            value=(
+                date.fromisoformat(default_exam_date)
+                if default_exam_date
+                else date.today()
+            ),
+            min_value=date.today()
+        )
+
+        daily_study_hours = st.number_input(
+            "Daily Available Study Hours",
+            min_value=0.5,
+            max_value=12.0,
+            value=float(default_hours),
+            step=0.5
+        )
+
+        preferred_study_time = st.selectbox(
+            "Preferred Study Time",
+            [
+                "Morning",
+                "Afternoon",
+                "Evening",
+                "Night"
+            ],
+            index=[
+                "Morning",
+                "Afternoon",
+                "Evening",
+                "Night"
+            ].index(default_time)
+            if default_time in [
+                "Morning",
+                "Afternoon",
+                "Evening",
+                "Night"
+            ]
+            else 2
+        )
+
+        submitted = st.form_submit_button(
+            "💾 Save Profile",
+            use_container_width=True
+        )
+
+        if submitted:
+
+            if not name.strip():
+
+                st.warning(
+                    "⚠️ Please enter your name."
+                )
+
+            elif not course.strip():
+
+                st.warning(
+                    "⚠️ Please enter your course/branch."
+                )
+
+            elif not semester.strip():
+
+                st.warning(
+                    "⚠️ Please enter your semester."
+                )
+
+            elif not subjects.strip():
+
+                st.warning(
+                    "⚠️ Please enter at least one subject."
+                )
+
+            else:
+
+                save_student_profile(
+                    name=name.strip(),
+                    course=course.strip(),
+                    semester=semester.strip(),
+                    subjects=subjects.strip(),
+                    exam_date=exam_date.isoformat(),
+                    daily_study_hours=daily_study_hours,
+                    preferred_study_time=preferred_study_time
+                )
+
+                st.success(
+                    "✅ Student profile saved successfully!"
+                )
+
+                st.rerun()
+
+    # -------------------------------------------------
+    # DISPLAY SAVED PROFILE
+    # -------------------------------------------------
+
+    profile = get_student_profile()
+
+    if profile:
+
+        st.divider()
+
+        st.subheader("📌 Saved Profile")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.info(
+                f"👤 **Name:** {profile['name']}"
+            )
+
+            st.info(
+                f"🎓 **Course:** {profile['course']}"
+            )
+
+            st.info(
+                f"📚 **Semester:** {profile['semester']}"
+            )
+
+            st.info(
+                f"📖 **Subjects:** {profile['subjects']}"
+            )
+
+        with col2:
+
+            st.info(
+                f"📅 **Exam Date:** {profile['exam_date']}"
+            )
+
+            st.info(
+                f"⏱️ **Daily Study Hours:** "
+                f"{profile['daily_study_hours']} hours"
+            )
+
+            st.info(
+                f"🌙 **Preferred Time:** "
+                f"{profile['preferred_study_time']}"
+            )
+
+            if profile["exam_date"]:
+
+                try:
+
+                    exam = date.fromisoformat(
+                        profile["exam_date"]
+                    )
+
+                    days_remaining = (
+                        exam - date.today()
+                    ).days
+
+                    if days_remaining > 0:
+
+                        st.success(
+                            f"⏳ **{days_remaining} days "
+                            f"remaining until exam**"
+                        )
+
+                    elif days_remaining == 0:
+
+                        st.warning(
+                            "📢 **Your exam is today!**"
+                        )
+
+                    else:
+
+                        st.warning(
+                            "⚠️ The exam date has passed."
+                        )
+
+                except ValueError:
+
+                    pass
 
 
 # =====================================================
@@ -459,11 +735,11 @@ elif selected == "💾 Chat History":
         for (
             question_text,
             answer_text,
-            date
+            chat_date
         ) in history:
 
             with st.expander(
-                f"🕐 {date}"
+                f"🕐 {chat_date}"
             ):
 
                 st.markdown(
