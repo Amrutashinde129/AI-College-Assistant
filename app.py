@@ -1,6 +1,9 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-from datetime import date
+from datetime import date, datetime, timedelta
+import json
+import re
+import requests
 
 from utils.pdf_processor import extract_text_from_pdf
 from utils.vector_store import create_vector_store
@@ -14,8 +17,16 @@ from db_manager import (
     save_chat,
     get_chat_history,
     clear_chat_history,
+
     save_student_profile,
-    get_student_profile
+    get_student_profile,
+
+    save_study_plan,
+    get_study_plan,
+    get_study_plan_by_date,
+    update_study_plan_status,
+    delete_study_plan,
+    clear_study_plan
 )
 
 
@@ -31,6 +42,14 @@ st.set_page_config(
 )
 
 create_table()
+
+
+# =====================================================
+# OLLAMA CONFIGURATION
+# =====================================================
+
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "llama3.2:1b"
 
 
 # =====================================================
@@ -72,6 +91,197 @@ st.markdown("""
 
 
 # =====================================================
+# AI STUDY TASK GENERATOR
+# =====================================================
+
+def generate_ai_study_tasks(profile):
+
+    subjects = [
+        subject.strip()
+        for subject in profile["subjects"].split(",")
+        if subject.strip()
+    ]
+
+    exam_date = profile["exam_date"]
+
+    daily_hours = profile["daily_study_hours"]
+
+    preferred_time = profile["preferred_study_time"]
+
+    today = date.today()
+
+    try:
+        exam = date.fromisoformat(exam_date)
+        days_remaining = (exam - today).days
+    except:
+        days_remaining = 7
+
+    if days_remaining <= 0:
+        days_remaining = 1
+
+    # Generate tasks for maximum 7 days
+    planning_days = min(days_remaining, 7)
+
+    subject_text = ", ".join(subjects)
+
+    prompt = f"""
+You are an AI college study planner.
+
+Create a personalized study plan for a diploma college student.
+
+Student information:
+
+Subjects:
+{subject_text}
+
+Daily available study hours:
+{daily_hours}
+
+Preferred study time:
+{preferred_time}
+
+Exam date:
+{exam_date}
+
+Days remaining:
+{days_remaining}
+
+Create study tasks for the next {planning_days} days.
+
+Rules:
+
+1. Use only the student's subjects.
+2. Generate realistic study tasks.
+3. Do not overload the student.
+4. Each task should have a topic.
+5. Include revision and practice tasks.
+6. Priority must be High, Medium, or Low.
+7. Duration must be between 0.5 and 2 hours.
+8. Each day should fit within the student's available study hours.
+9. Use dates starting from {today.isoformat()}.
+10. Return ONLY valid JSON.
+11. Do not add markdown.
+12. Do not add explanations.
+
+Return exactly this format:
+
+[
+    {{
+        "subject": "Subject Name",
+        "topic": "Topic to study",
+        "study_date": "YYYY-MM-DD",
+        "start_time": "18:00",
+        "end_time": "19:00",
+        "duration": 1.0,
+        "priority": "High"
+    }}
+]
+"""
+
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": OLLAMA_MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.2,
+                "num_predict": 1500
+            }
+        },
+        timeout=120
+    )
+
+    response.raise_for_status()
+
+    result = response.json()
+
+    ai_text = result.get("response", "").strip()
+
+    # Remove markdown code fences if AI returns them
+    ai_text = re.sub(
+        r"```json|```",
+        "",
+        ai_text,
+        flags=re.IGNORECASE
+    ).strip()
+
+    # Extract JSON array
+    match = re.search(
+        r"\[.*\]",
+        ai_text,
+        re.DOTALL
+    )
+
+    if not match:
+        raise ValueError(
+            "AI did not return valid study tasks."
+        )
+
+    json_text = match.group(0)
+
+    tasks = json.loads(json_text)
+
+    valid_tasks = []
+
+    for task in tasks:
+
+        required_fields = [
+            "subject",
+            "topic",
+            "study_date",
+            "start_time",
+            "end_time",
+            "duration",
+            "priority"
+        ]
+
+        if not all(
+            field in task
+            for field in required_fields
+        ):
+            continue
+
+        if task["subject"] not in subjects:
+            continue
+
+        if task["priority"] not in [
+            "High",
+            "Medium",
+            "Low"
+        ]:
+            task["priority"] = "Medium"
+
+        try:
+
+            task_date = date.fromisoformat(
+                task["study_date"]
+            )
+
+            if task_date < today:
+                continue
+
+            duration = float(
+                task["duration"]
+            )
+
+            if duration <= 0:
+                duration = 1.0
+
+            if duration > 2:
+                duration = 2.0
+
+            task["duration"] = duration
+
+            valid_tasks.append(task)
+
+        except Exception:
+            continue
+
+    return valid_tasks
+
+
+# =====================================================
 # SIDEBAR
 # =====================================================
 
@@ -88,6 +298,7 @@ with st.sidebar:
         [
             "🏠 Dashboard",
             "👤 Student Profile",
+            "📅 Study Planner",
             "💬 AI Chat",
             "📝 Study Summary",
             "❓ MCQ Generator",
@@ -97,6 +308,7 @@ with st.sidebar:
         icons=[
             "house",
             "person",
+            "calendar",
             "chat-dots",
             "file-text",
             "question-circle",
@@ -186,71 +398,59 @@ if selected == "🏠 Dashboard":
 
     with col1:
 
-        st.markdown(
-            """
-            ### 💬 AI Chat
+        st.markdown("""
+        ### 💬 AI Chat
 
-            Ask questions about your uploaded
-            college notes using RAG and AI.
-            """
-        )
+        Ask questions about your uploaded
+        college notes using AI and RAG.
+        """)
 
     with col2:
 
-        st.markdown(
-            """
-            ### 📝 Study Summary
+        st.markdown("""
+        ### 📝 Study Summary
 
-            Convert lengthy study material into
-            concise revision notes.
-            """
-        )
+        Convert lengthy study material into
+        concise revision notes.
+        """)
 
     with col3:
 
-        st.markdown(
-            """
-            ### ❓ MCQ Generator
+        st.markdown("""
+        ### ❓ MCQ Generator
 
-            Generate practice multiple-choice
-            questions from your study material.
-            """
-        )
+        Generate practice multiple-choice
+        questions from your study material.
+        """)
 
     col4, col5, col6 = st.columns(3)
 
     with col4:
 
-        st.markdown(
-            """
-            ### 🎯 Exam Questions
+        st.markdown("""
+        ### 🎯 Important Questions
 
-            Generate important questions for
-            examination preparation.
-            """
-        )
+        Generate important questions for
+        examination preparation.
+        """)
 
     with col5:
 
-        st.markdown(
-            """
-            ### 👤 Student Profile
+        st.markdown("""
+        ### 👤 Student Profile
 
-            Save your academic information
-            for personalized study planning.
-            """
-        )
+        Store your academic information
+        for personalized planning.
+        """)
 
     with col6:
 
-        st.markdown(
-            """
-            ### 🤖 Local AI
+        st.markdown("""
+        ### 📅 Study Planner
 
-            Powered by your configured
-            AI/RAG system.
-            """
-        )
+        Create and manage your
+        personalized study schedule.
+        """)
 
     st.divider()
 
@@ -279,28 +479,30 @@ elif selected == "👤 Student Profile":
 
     st.write(
         "Enter your academic information. "
-        "This information will later be used by "
-        "the Smart Study Planner."
+        "This information will be used by the "
+        "Smart Study Planner."
     )
 
     profile = get_student_profile()
 
-    # -------------------------------------------------
-    # DEFAULT VALUES
-    # -------------------------------------------------
-
     if profile:
 
         default_name = profile["name"] or ""
+
         default_course = profile["course"] or ""
+
         default_semester = profile["semester"] or ""
+
         default_subjects = profile["subjects"] or ""
+
         default_exam_date = profile["exam_date"]
+
         default_hours = (
             profile["daily_study_hours"]
             if profile["daily_study_hours"] is not None
             else 2.0
         )
+
         default_time = (
             profile["preferred_study_time"]
             or "Evening"
@@ -315,10 +517,6 @@ elif selected == "👤 Student Profile":
         default_exam_date = None
         default_hours = 2.0
         default_time = "Evening"
-
-    # -------------------------------------------------
-    # PROFILE FORM
-    # -------------------------------------------------
 
     with st.form("student_profile_form"):
 
@@ -362,7 +560,9 @@ elif selected == "👤 Student Profile":
         exam_date = st.date_input(
             "Exam Date",
             value=(
-                date.fromisoformat(default_exam_date)
+                date.fromisoformat(
+                    default_exam_date
+                )
                 if default_exam_date
                 else date.today()
             ),
@@ -377,27 +577,21 @@ elif selected == "👤 Student Profile":
             step=0.5
         )
 
+        study_times = [
+            "Morning",
+            "Afternoon",
+            "Evening",
+            "Night"
+        ]
+
         preferred_study_time = st.selectbox(
             "Preferred Study Time",
-            [
-                "Morning",
-                "Afternoon",
-                "Evening",
-                "Night"
-            ],
-            index=[
-                "Morning",
-                "Afternoon",
-                "Evening",
-                "Night"
-            ].index(default_time)
-            if default_time in [
-                "Morning",
-                "Afternoon",
-                "Evening",
-                "Night"
-            ]
-            else 2
+            study_times,
+            index=(
+                study_times.index(default_time)
+                if default_time in study_times
+                else 2
+            )
         )
 
         submitted = st.form_submit_button(
@@ -449,10 +643,6 @@ elif selected == "👤 Student Profile":
 
                 st.rerun()
 
-    # -------------------------------------------------
-    # DISPLAY SAVED PROFILE
-    # -------------------------------------------------
-
     profile = get_student_profile()
 
     if profile:
@@ -484,7 +674,8 @@ elif selected == "👤 Student Profile":
         with col2:
 
             st.info(
-                f"📅 **Exam Date:** {profile['exam_date']}"
+                f"📅 **Exam Date:** "
+                f"{profile['exam_date']}"
             )
 
             st.info(
@@ -493,44 +684,522 @@ elif selected == "👤 Student Profile":
             )
 
             st.info(
-                f"🌙 **Preferred Time:** "
+                f"🕐 **Preferred Time:** "
                 f"{profile['preferred_study_time']}"
             )
 
-            if profile["exam_date"]:
+
+# =====================================================
+# STUDY PLANNER
+# =====================================================
+
+elif selected == "📅 Study Planner":
+
+    st.title("📅 Smart Study Planner")
+
+    st.write(
+        "Create and manage your personalized "
+        "AI-powered study schedule."
+    )
+
+    profile = get_student_profile()
+
+    if profile is None:
+
+        st.warning(
+            "⚠️ Please complete your Student Profile first."
+        )
+
+        st.info(
+            "Go to 👤 Student Profile and enter your "
+            "subjects, exam date and daily study hours."
+        )
+
+    else:
+
+        st.success(
+            f"👋 Welcome {profile['name']}!"
+        )
+
+        subjects = [
+            subject.strip()
+            for subject in profile["subjects"].split(",")
+            if subject.strip()
+        ]
+
+        # =================================================
+        # PROFILE SUMMARY
+        # =================================================
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+
+            st.metric(
+                "📚 Subjects",
+                len(subjects)
+            )
+
+        with col2:
+
+            st.metric(
+                "⏱️ Daily Study Hours",
+                f"{profile['daily_study_hours']} hrs"
+            )
+
+        with col3:
+
+            st.metric(
+                "📅 Exam Date",
+                profile["exam_date"]
+            )
+
+        # =================================================
+        # PROGRESS BAR
+        # =================================================
+
+        st.divider()
+
+        st.subheader("📊 Study Progress")
+
+        all_plans = get_study_plan()
+
+        if all_plans:
+
+            total_tasks = len(all_plans)
+
+            completed_tasks = sum(
+                1
+                for plan in all_plans
+                if plan[8] == "Completed"
+            )
+
+            pending_tasks = (
+                total_tasks - completed_tasks
+            )
+
+            progress = (
+                completed_tasks / total_tasks
+            )
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+
+                st.metric(
+                    "📚 Total Tasks",
+                    total_tasks
+                )
+
+            with col2:
+
+                st.metric(
+                    "✅ Completed",
+                    completed_tasks
+                )
+
+            with col3:
+
+                st.metric(
+                    "⏳ Pending",
+                    pending_tasks
+                )
+
+            st.progress(
+                progress,
+                text=f"{int(progress * 100)}% Completed"
+            )
+
+        else:
+
+            st.info(
+                "📭 No study tasks yet."
+            )
+
+        # =================================================
+        # DAYS REMAINING
+        # =================================================
+
+        if profile["exam_date"]:
+
+            try:
+
+                exam = date.fromisoformat(
+                    profile["exam_date"]
+                )
+
+                days_remaining = (
+                    exam - date.today()
+                ).days
+
+                if days_remaining > 0:
+
+                    st.info(
+                        f"⏳ **{days_remaining} days "
+                        f"remaining for your exam.**"
+                    )
+
+                elif days_remaining == 0:
+
+                    st.warning(
+                        "📢 Your exam is today!"
+                    )
+
+                else:
+
+                    st.warning(
+                        "⚠️ Your exam date has passed. "
+                        "Update it in Student Profile."
+                    )
+
+            except ValueError:
+
+                pass
+
+        st.divider()
+
+        # =================================================
+        # AI GENERATED STUDY PLAN
+        # =================================================
+
+        st.subheader("🤖 AI Study Plan")
+
+        st.write(
+            "Generate personalized study tasks "
+            "automatically using your student profile."
+        )
+
+        if st.button(
+            "🤖 Generate AI Study Plan",
+            use_container_width=True
+        ):
+
+            with st.spinner(
+                "🧠 AI is creating your study plan..."
+            ):
 
                 try:
 
-                    exam = date.fromisoformat(
-                        profile["exam_date"]
+                    generated_tasks = (
+                        generate_ai_study_tasks(
+                            profile
+                        )
                     )
 
-                    days_remaining = (
-                        exam - date.today()
-                    ).days
+                    if generated_tasks:
 
-                    if days_remaining > 0:
+                        added_count = 0
+
+                        for task in generated_tasks:
+
+                            save_study_plan(
+                                subject=task["subject"],
+                                topic=task["topic"],
+                                study_date=task["study_date"],
+                                start_time=task["start_time"],
+                                end_time=task["end_time"],
+                                duration=task["duration"],
+                                priority=task["priority"],
+                                status="Pending"
+                            )
+
+                            added_count += 1
 
                         st.success(
-                            f"⏳ **{days_remaining} days "
-                            f"remaining until exam**"
+                            f"✅ AI generated "
+                            f"{added_count} study tasks!"
                         )
 
-                    elif days_remaining == 0:
-
-                        st.warning(
-                            "📢 **Your exam is today!**"
-                        )
+                        st.rerun()
 
                     else:
 
                         st.warning(
-                            "⚠️ The exam date has passed."
+                            "⚠️ AI could not generate "
+                            "valid study tasks."
                         )
 
-                except ValueError:
+                except requests.exceptions.ConnectionError:
 
-                    pass
+                    st.error(
+                        "❌ Ollama is not running. "
+                        "Please start Ollama and try again."
+                    )
+
+                except Exception as e:
+
+                    st.error(
+                        f"❌ AI Study Plan Error: {e}"
+                    )
+
+        st.divider()
+
+        # =================================================
+        # ADD MANUAL STUDY TASK
+        # =================================================
+
+        st.subheader("➕ Add Study Task")
+
+        if subjects:
+
+            with st.form("study_plan_form"):
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+
+                    subject = st.selectbox(
+                        "📚 Subject",
+                        subjects
+                    )
+
+                    topic = st.text_input(
+                        "📖 Topic / Chapter",
+                        placeholder="Example: Inheritance"
+                    )
+
+                    study_date = st.date_input(
+                        "📅 Study Date",
+                        value=date.today()
+                    )
+
+                with col2:
+
+                    start_time = st.time_input(
+                        "⏰ Start Time"
+                    )
+
+                    end_time = st.time_input(
+                        "⏰ End Time"
+                    )
+
+                    duration = st.number_input(
+                        "⏱️ Duration (hours)",
+                        min_value=0.25,
+                        max_value=12.0,
+                        value=1.0,
+                        step=0.25
+                    )
+
+                priority = st.selectbox(
+                    "🔥 Priority",
+                    [
+                        "High",
+                        "Medium",
+                        "Low"
+                    ]
+                )
+
+                submit_plan = st.form_submit_button(
+                    "💾 Add to Study Plan",
+                    use_container_width=True
+                )
+
+                if submit_plan:
+
+                    if not topic.strip():
+
+                        st.warning(
+                            "⚠️ Please enter a topic."
+                        )
+
+                    elif end_time <= start_time:
+
+                        st.warning(
+                            "⚠️ End time must be after "
+                            "start time."
+                        )
+
+                    else:
+
+                        save_study_plan(
+                            subject=subject,
+                            topic=topic.strip(),
+                            study_date=study_date.isoformat(),
+                            start_time=start_time.strftime(
+                                "%H:%M"
+                            ),
+                            end_time=end_time.strftime(
+                                "%H:%M"
+                            ),
+                            duration=duration,
+                            priority=priority,
+                            status="Pending"
+                        )
+
+                        st.success(
+                            "✅ Study task added successfully!"
+                        )
+
+                        st.rerun()
+
+        else:
+
+            st.warning(
+                "⚠️ No subjects found. "
+                "Please update your Student Profile."
+            )
+
+        st.divider()
+
+        # =================================================
+        # TODAY'S PLAN
+        # =================================================
+
+        st.subheader("📋 Today's Study Plan")
+
+        today = date.today().isoformat()
+
+        today_plans = get_study_plan_by_date(
+            today
+        )
+
+        if today_plans:
+
+            for plan in today_plans:
+
+                (
+                    plan_id,
+                    subject,
+                    topic,
+                    plan_date,
+                    start_time,
+                    end_time,
+                    duration,
+                    priority,
+                    status,
+                    created_at
+                ) = plan
+
+                with st.container(border=True):
+
+                    col1, col2, col3 = st.columns(
+                        [3, 2, 1]
+                    )
+
+                    with col1:
+
+                        st.markdown(
+                            f"### 📚 {subject}"
+                        )
+
+                        st.write(
+                            f"**Topic:** {topic}"
+                        )
+
+                    with col2:
+
+                        st.write(
+                            f"⏰ {start_time} - {end_time}"
+                        )
+
+                        st.write(
+                            f"⏱️ {duration} hours"
+                        )
+
+                        st.write(
+                            f"🔥 Priority: {priority}"
+                        )
+
+                    with col3:
+
+                        if status == "Completed":
+
+                            st.success(
+                                "✅ Completed"
+                            )
+
+                        else:
+
+                            if st.button(
+                                "✅ Complete",
+                                key=f"complete_{plan_id}"
+                            ):
+
+                                update_study_plan_status(
+                                    plan_id,
+                                    "Completed"
+                                )
+
+                                st.rerun()
+
+                        if st.button(
+                            "🗑️ Delete",
+                            key=f"delete_{plan_id}"
+                        ):
+
+                            delete_study_plan(
+                                plan_id
+                            )
+
+                            st.rerun()
+
+        else:
+
+            st.info(
+                "📭 No study tasks planned for today."
+            )
+
+        # =================================================
+        # ALL STUDY PLANS
+        # =================================================
+
+        st.divider()
+
+        st.subheader("📚 All Study Plans")
+
+        all_plans = get_study_plan()
+
+        if all_plans:
+
+            for plan in all_plans:
+
+                (
+                    plan_id,
+                    subject,
+                    topic,
+                    plan_date,
+                    start_time,
+                    end_time,
+                    duration,
+                    priority,
+                    status,
+                    created_at
+                ) = plan
+
+                status_icon = (
+                    "✅"
+                    if status == "Completed"
+                    else "⏳"
+                )
+
+                st.write(
+                    f"{status_icon} **{plan_date}** | "
+                    f"**{subject}** | "
+                    f"{topic} | "
+                    f"{start_time}-{end_time} | "
+                    f"🔥 {priority}"
+                )
+
+            st.divider()
+
+            if st.button(
+                "🗑️ Clear All Study Plans"
+            ):
+
+                clear_study_plan()
+
+                st.success(
+                    "All study plans cleared."
+                )
+
+                st.rerun()
+
+        else:
+
+            st.info(
+                "📭 No study plans available."
+            )
 
 
 # =====================================================
@@ -637,7 +1306,8 @@ elif selected == "❓ MCQ Generator":
     st.title("❓ AI MCQ Generator")
 
     st.write(
-        "Generate practice questions from your study material."
+        "Generate practice questions from your "
+        "study material."
     )
 
     if "pdf_text" in st.session_state:
@@ -682,7 +1352,8 @@ elif selected == "🎯 Important Questions":
     st.title("🎯 Important Exam Questions")
 
     st.write(
-        "Generate important questions from your study material."
+        "Generate important questions from your "
+        "study material."
     )
 
     if "pdf_text" in st.session_state:
