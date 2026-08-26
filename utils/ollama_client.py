@@ -1,10 +1,17 @@
 import streamlit as st
 from google import genai
 
+
 MODEL_NAME = "gemini-3.6-flash"
 
 
 def ask_ollama(prompt):
+    """
+    Sends the prompt to Gemini.
+    The function name is kept as ask_ollama so existing
+    files such as rag.py and summarizer.py do not need
+    to be changed.
+    """
 
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
@@ -29,7 +36,10 @@ def ask_ollama(prompt):
     except Exception as e:
         error = str(e)
 
-        if "429" in error or "RESOURCE_EXHAUSTED" in error:
+        if (
+            "429" in error
+            or "RESOURCE_EXHAUSTED" in error
+        ):
             return (
                 "⚠️ Gemini API quota has been reached. "
                 "Please try again later."
