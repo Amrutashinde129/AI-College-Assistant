@@ -22,14 +22,11 @@ from utils.summarizer import summarize_text
 # =========================================================
 # PAGE CONFIG
 # =========================================================
-st.sidebar.markdown(
-    """
-    <div class="sidebar-title">🎓 AI College Assistant</div>
-    <div class="sidebar-subtitle">
-        Your Smart Academic Companion
-    </div>
-    """,
-    unsafe_allow_html=True
+st.set_page_config(
+    page_title="AI College Assistant",
+    page_icon="🎓",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 
@@ -172,27 +169,69 @@ footer {visibility: hidden;}
 
 /* ---------- SIDEBAR ---------- */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #17132e 0%, #25164a 55%, #17132e 100%);
-    border-right: 1px solid rgba(255,255,255,.08);
+    background: #f8fafc !important;
+    border-right: 1px solid #e2e8f0 !important;
 }
 
-[data-testid="stSidebar"] * {
-    color: #f7f4ff !important;
+[data-testid="stSidebar"] > div:first-child,
+[data-testid="stSidebarContent"] {
+    background: #f8fafc !important;
+}
+
+[data-testid="stSidebar"] .stButton > button {
+    width: 100%;
+    background: transparent !important;
+    color: #334155 !important;
+    border: 1px solid transparent !important;
+    border-radius: 12px !important;
+    text-align: left !important;
+    font-weight: 650 !important;
+    padding: 11px 14px !important;
+    margin: 3px 0 !important;
+    box-shadow: none !important;
+    transition: all .2s ease !important;
+}
+
+[data-testid="stSidebar"] .stButton > button:hover {
+    background: #e0e7ff !important;
+    color: #3730a3 !important;
+    border-color: #c7d2fe !important;
+    transform: translateX(3px);
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label {
+    color: #334155 !important;
 }
 
 .sidebar-logo {
-    text-align: center;
-    font-size: 1.55rem;
+    text-align: left;
+    font-size: 1.35rem;
     font-weight: 800;
-    padding: 0.7rem 0 1.4rem;
+    color: #172554 !important;
+    padding: 0.7rem 0 0.2rem;
 }
 
 .sidebar-mini {
-    background: rgba(255,255,255,.09);
-    border: 1px solid rgba(255,255,255,.10);
+    background: #ffffff !important;
+    color: #334155 !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 16px;
     padding: 14px;
     margin-top: 12px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, .06);
+}
+
+.sidebar-mini * {
+    color: #334155 !important;
+}
+
+[data-testid="stSidebar"] hr {
+    border-color: #e2e8f0 !important;
 }
 
 /* ---------- BUTTONS ---------- */
@@ -492,7 +531,12 @@ def process_uploaded_pdf(uploaded_file):
 # =========================================================
 with st.sidebar:
     st.markdown(
-        '<div class="sidebar-logo">🎓 AI College Assistant</div>',
+        """
+        <div class="sidebar-logo">🎓 AI College Assistant</div>
+        <div style="font-size:.82rem;color:#64748b!important;margin-bottom:14px;">
+            Your Smart Academic Companion
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
@@ -815,7 +859,7 @@ elif st.session_state.page == "pdf_upload":
                 st.session_state.uploaded_files.append(file)
                 text = process_uploaded_pdf(file)
 
-                with open(os.path.join("uploads", file.name), "wb") as f:
+                with open(os.path.join("uploads", os.path.basename(file.name)), "wb") as f:
                     f.write(file.getbuffer())
 
                 st.success(
@@ -1150,8 +1194,6 @@ elif st.session_state.page == "study_plan":
 
 
 # =========================================================
-# PAGE 8 — STUDENT PROFILE / SETTINGS
-# =========================================================
 elif st.session_state.page == "settings":
     st.markdown('<h1 class="main-title">⚙️ Student Profile</h1>', unsafe_allow_html=True)
     st.markdown(
@@ -1292,6 +1334,16 @@ elif st.session_state.page == "settings":
                 ),
                 step=0.5
             )
+            preferred_study_time = st.selectbox(
+                "🕒 Preferred Study Time",
+                ["Morning", "Afternoon", "Evening", "Night"],
+                index=["Morning", "Afternoon", "Evening", "Night"].index(
+                    profile.get("preferred_study_time", "Morning")
+                    if profile.get("preferred_study_time", "Morning")
+                    in ["Morning", "Afternoon", "Evening", "Night"]
+                    else "Morning"
+                )
+            )
 
         # ---------------------------------------------
         # SAVE BUTTON
@@ -1322,7 +1374,8 @@ elif st.session_state.page == "settings":
                     new_semester.strip(),
                     new_college.strip(),
                     new_exam_date.strftime("%Y-%m-%d"),
-                    float(new_hours)
+                    float(new_hours),
+                    preferred_study_time
                 )
 
                 st.success(
