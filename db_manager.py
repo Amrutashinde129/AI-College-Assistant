@@ -1,523 +1,239 @@
 import sqlite3
 import os
-from datetime import datetime
+
+DB_NAME = "study_assistant.db"
 
 
-# =====================================================
-# DATABASE CONFIGURATION
-# =====================================================
+def get_db_connection():
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-DATABASE_FOLDER = "database"
-
-os.makedirs(DATABASE_FOLDER, exist_ok=True)
-
-DB_NAME = os.path.join(
-    DATABASE_FOLDER,
-    "chat_history.db"
-)
-
-
-# =====================================================
-# DATABASE CONNECTION
-# =====================================================
-
-def get_connection():
-    return sqlite3.connect(DB_NAME)
-
-
-# =====================================================
-# CREATE TABLES
-# =====================================================
 
 def create_table():
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    connection = get_connection()
-    cursor = connection.cursor()
+    # Create student profile table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS student_profile (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            branch TEXT,
+            semester TEXT,
+            college TEXT,
+            exam_date TEXT,
+            study_hours REAL,
+            preferred_study_time TEXT DEFAULT 'Morning'
+        )
+    """)
 
-    # -------------------------------------------------
-    # CHAT HISTORY
-    # -------------------------------------------------
-
+    # Create chat history table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            question TEXT NOT NULL,
-            answer TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            question TEXT,
+            answer TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
-    # -------------------------------------------------
-    # STUDENT PROFILE
-    # -------------------------------------------------
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS student_profile (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            name TEXT,
-            course TEXT,
-            semester TEXT,
-            subjects TEXT,
-            exam_date TEXT,
-            daily_study_hours REAL,
-            preferred_study_time TEXT,
-            created_at TEXT,
-            updated_at TEXT
-        )
-    """)
+    conn.commit()
 
     # -------------------------------------------------
-    # STUDY PLAN
+    # DATABASE MIGRATION
+    # Adds columns if an older database already exists
     # -------------------------------------------------
+    cursor.execute("PRAGMA table_info(student_profile)")
+    existing_columns = {
+        row["name"] for row in cursor.fetchall()
+    }
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS study_plan (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            subject TEXT NOT NULL,
-            topic TEXT,
-            study_date TEXT NOT NULL,
-            start_time TEXT,
-            end_time TEXT,
-            duration REAL,
-            priority TEXT,
-            status TEXT DEFAULT 'Pending',
-            created_at TEXT NOT NULL
-        )
-    """)
+    required_columns = {
+        "name": "TEXT",
+        "branch": "TEXT",
+        "semester": "TEXT",
+        "college": "TEXT",
+        "exam_date": "TEXT",
+        "study_hours": "REAL",
+        "preferred_study_time": "TEXT DEFAULT 'Morning'"
+    }
 
-    connection.commit()
-    connection.close()
+    for column_name, column_type in required_columns.items():
+        if column_name not in existing_columns:
+            try:
+                cursor.execute(
+                    f"ALTER TABLE student_profile "
+                    f"ADD COLUMN {column_name} {column_type}"
+                )
+            except sqlite3.OperationalError:
+                pass
 
+    conn.commit()
+    conn.close()
 
-# =====================================================
-# CHAT HISTORY
-# =====================================================
-
-def save_chat(question, answer):
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        INSERT INTO chat_history
-        (question, answer, created_at)
-        VALUES (?, ?, ?)
-    """, (
-        question,
-        answer,
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    ))
-
-    connection.commit()
-    connection.close()
-
-
-def get_chat_history():
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        SELECT question, answer, created_at
-        FROM chat_history
-        ORDER BY id DESC
-    """)
-
-    history = cursor.fetchall()
-
-    connection.close()
-
-    return history
-
-
-def clear_chat_history():
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        "DELETE FROM chat_history"
-    )
-
-    connection.commit()
-    connection.close()
-
-
-# =====================================================
-# STUDENT PROFILE
-# =====================================================
 
 def save_student_profile(
     name,
-    course,
+    branch,
     semester,
-    subjects,
+    college,
     exam_date,
-    daily_study_hours,
-    preferred_study_time
+    study_hours,
+    preferred_study_time="Morning"
 ):
+    """
+    Save or update the student's profile.
+    """
 
-    connection = get_connection()
-    cursor = connection.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    current_time = datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
+    # Make sure database tables/columns exist
+    cursor.execute("PRAGMA table_info(student_profile)")
+    existing_columns = {
+        row["name"] for row in cursor.fetchall()
+    }
+
+    # Add missing preferred_study_time column if necessary
+    if "preferred_study_time" not in existing_columns:
+        cursor.execute("""
+            ALTER TABLE student_profile
+            ADD COLUMN preferred_study_time TEXT DEFAULT 'Morning'
+        """)
+
+    # Check whether a profile already exists
+    cursor.execute(
+        "SELECT id FROM student_profile LIMIT 1"
     )
+    row = cursor.fetchone()
 
-    cursor.execute("""
-        SELECT id
-        FROM student_profile
-        WHERE id = 1
-    """)
-
-    existing_profile = cursor.fetchone()
-
-    if existing_profile:
-
+    if row:
+        # -----------------------------
+        # UPDATE EXISTING PROFILE
+        # -----------------------------
         cursor.execute("""
             UPDATE student_profile
             SET
                 name = ?,
-                course = ?,
+                branch = ?,
                 semester = ?,
-                subjects = ?,
+                college = ?,
                 exam_date = ?,
-                daily_study_hours = ?,
-                preferred_study_time = ?,
-                updated_at = ?
-            WHERE id = 1
+                study_hours = ?,
+                preferred_study_time = ?
+            WHERE id = ?
         """, (
             name,
-            course,
+            branch,
             semester,
-            subjects,
+            college,
             exam_date,
-            daily_study_hours,
+            study_hours,
             preferred_study_time,
-            current_time
+            row["id"]
         ))
 
     else:
-
+        # -----------------------------
+        # INSERT NEW PROFILE
+        # -----------------------------
         cursor.execute("""
-            INSERT INTO student_profile
-            (
-                id,
+            INSERT INTO student_profile (
                 name,
-                course,
+                branch,
                 semester,
-                subjects,
+                college,
                 exam_date,
-                daily_study_hours,
-                preferred_study_time,
-                created_at,
-                updated_at
+                study_hours,
+                preferred_study_time
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
-            1,
             name,
-            course,
+            branch,
             semester,
-            subjects,
+            college,
             exam_date,
-            daily_study_hours,
-            preferred_study_time,
-            current_time,
-            current_time
+            study_hours,
+            preferred_study_time
         ))
 
-    connection.commit()
-    connection.close()
+    conn.commit()
+    conn.close()
 
 
 def get_student_profile():
+    """
+    Get the saved student profile.
+    """
 
-    connection = get_connection()
-    cursor = connection.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT
-            name,
-            course,
-            semester,
-            subjects,
-            exam_date,
-            daily_study_hours,
-            preferred_study_time,
-            created_at,
-            updated_at
+        SELECT *
         FROM student_profile
-        WHERE id = 1
+        LIMIT 1
     """)
 
-    profile = cursor.fetchone()
+    row = cursor.fetchone()
 
-    connection.close()
+    conn.close()
 
-    if profile is None:
-        return None
+    if row:
+        return dict(row)
 
-    return {
-        "name": profile[0],
-        "course": profile[1],
-        "semester": profile[2],
-        "subjects": profile[3],
-        "exam_date": profile[4],
-        "daily_study_hours": profile[5],
-        "preferred_study_time": profile[6],
-        "created_at": profile[7],
-        "updated_at": profile[8]
-    }
+    return None
 
 
-def update_student_profile(
-    name=None,
-    course=None,
-    semester=None,
-    subjects=None,
-    exam_date=None,
-    daily_study_hours=None,
-    preferred_study_time=None
-):
+def save_chat(question, answer):
+    """
+    Save a chat question and answer.
+    """
 
-    profile = get_student_profile()
-
-    if profile is None:
-        return False
-
-    name = (
-        name if name is not None
-        else profile["name"]
-    )
-
-    course = (
-        course if course is not None
-        else profile["course"]
-    )
-
-    semester = (
-        semester if semester is not None
-        else profile["semester"]
-    )
-
-    subjects = (
-        subjects if subjects is not None
-        else profile["subjects"]
-    )
-
-    exam_date = (
-        exam_date if exam_date is not None
-        else profile["exam_date"]
-    )
-
-    daily_study_hours = (
-        daily_study_hours
-        if daily_study_hours is not None
-        else profile["daily_study_hours"]
-    )
-
-    preferred_study_time = (
-        preferred_study_time
-        if preferred_study_time is not None
-        else profile["preferred_study_time"]
-    )
-
-    save_student_profile(
-        name,
-        course,
-        semester,
-        subjects,
-        exam_date,
-        daily_study_hours,
-        preferred_study_time
-    )
-
-    return True
-
-
-def delete_student_profile():
-
-    connection = get_connection()
-    cursor = connection.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
     cursor.execute("""
-        DELETE FROM student_profile
-        WHERE id = 1
-    """)
-
-    connection.commit()
-    connection.close()
-
-
-def profile_exists():
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        SELECT id
-        FROM student_profile
-        WHERE id = 1
-    """)
-
-    result = cursor.fetchone()
-
-    connection.close()
-
-    return result is not None
-
-
-# =====================================================
-# STUDY PLANNER
-# =====================================================
-
-def save_study_plan(
-    subject,
-    topic,
-    study_date,
-    start_time,
-    end_time,
-    duration,
-    priority="Medium",
-    status="Pending"
-):
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        INSERT INTO study_plan
-        (
-            subject,
-            topic,
-            study_date,
-            start_time,
-            end_time,
-            duration,
-            priority,
-            status,
-            created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO chat_history (question, answer)
+        VALUES (?, ?)
     """, (
-        subject,
-        topic,
-        study_date,
-        start_time,
-        end_time,
-        duration,
-        priority,
-        status,
-        datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        question,
+        answer
     ))
 
-    connection.commit()
-    connection.close()
+    conn.commit()
+    conn.close()
 
 
-def get_study_plan():
+def get_chat_history(limit=5):
+    """
+    Get recent chat history.
+    """
 
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        SELECT
-            id,
-            subject,
-            topic,
-            study_date,
-            start_time,
-            end_time,
-            duration,
-            priority,
-            status,
-            created_at
-        FROM study_plan
-        ORDER BY study_date, start_time
-    """)
-
-    plans = cursor.fetchall()
-
-    connection.close()
-
-    return plans
-
-
-def get_study_plan_by_date(study_date):
-
-    connection = get_connection()
-    cursor = connection.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
     cursor.execute("""
         SELECT
-            id,
-            subject,
-            topic,
-            study_date,
-            start_time,
-            end_time,
-            duration,
-            priority,
-            status,
-            created_at
-        FROM study_plan
-        WHERE study_date = ?
-        ORDER BY start_time
-    """, (study_date,))
+            question,
+            answer,
+            timestamp
+        FROM chat_history
+        ORDER BY id DESC
+        LIMIT ?
+    """, (limit,))
 
-    plans = cursor.fetchall()
+    rows = cursor.fetchall()
 
-    connection.close()
+    conn.close()
 
-    return plans
+    return [dict(row) for row in rows]
 
 
-def update_study_plan_status(
-    plan_id,
-    status
-):
+# -------------------------------------------------
+# CREATE / UPDATE DATABASE WHEN FILE IS LOADED
+# -------------------------------------------------
 
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        UPDATE study_plan
-        SET status = ?
-        WHERE id = ?
-    """, (
-        status,
-        plan_id
-    ))
-
-    connection.commit()
-    connection.close()
-
-
-def delete_study_plan(plan_id):
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        DELETE FROM study_plan
-        WHERE id = ?
-    """, (plan_id,))
-
-    connection.commit()
-    connection.close()
-
-
-def clear_study_plan():
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        "DELETE FROM study_plan"
-    )
-
-    connection.commit()
-    connection.close()
+create_table()

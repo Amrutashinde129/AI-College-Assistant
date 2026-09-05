@@ -1216,9 +1216,33 @@ elif st.session_state.page == "settings":
 
         # Fixed typo: form_submitstre_button -> form_submit_button
         save_profile = st.form_submit_button(
-            "💾 Save Student Profile",
-            use_container_width=True,
-        )
+    "💾 Save Student Profile",
+    use_container_width=True,
+)
+
+if save_profile:
+    if not new_name.strip():
+        st.error("Please enter your name.")
+    else:
+        try:
+            save_student_profile(
+                new_name.strip(),
+                new_branch.strip(),
+                new_semester.strip(),
+                new_college.strip(),
+                new_exam_date.strftime("%Y-%m-%d"),
+                float(new_hours),
+            )
+
+            st.success("Student profile updated successfully!")
+            st.session_state.page = "dashboard"
+            st.rerun()
+
+        except Exception as e:
+            st.error(
+                f"Could not save the profile. Database error: {e}"
+            )
+        
 
         if save_profile:
             if not new_name.strip():
