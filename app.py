@@ -22,11 +22,14 @@ from utils.summarizer import summarize_text
 # =========================================================
 # PAGE CONFIG
 # =========================================================
-st.set_page_config(
-    page_title="AI College Assistant",
-    page_icon="🎓",
-    layout="wide",
-    initial_sidebar_state="expanded",
+st.sidebar.markdown(
+    """
+    <div class="sidebar-title">🎓 AI College Assistant</div>
+    <div class="sidebar-subtitle">
+        Your Smart Academic Companion
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 
