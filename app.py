@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 from datetime import datetime, date, timedelta
@@ -6,6 +5,7 @@ from datetime import datetime, date, timedelta
 # =========================================================
 # IMPORTS
 # =========================================================
+
 from db_manager import (
     get_student_profile,
     get_chat_history,
@@ -25,6 +25,7 @@ from utils.summarizer import summarize_text
 # =========================================================
 # PAGE CONFIG
 # =========================================================
+
 st.set_page_config(
     page_title="AI College Assistant",
     page_icon="🎓",
@@ -36,6 +37,7 @@ st.set_page_config(
 # =========================================================
 # DATABASE
 # =========================================================
+
 create_table()
 
 profile = get_student_profile() or {}
@@ -70,6 +72,7 @@ except (ValueError, TypeError):
 # =========================================================
 # SESSION STATE
 # =========================================================
+
 defaults = {
     "page": "dashboard",
     "chat_messages": [],
@@ -90,8 +93,8 @@ for key, value in defaults.items():
 # =========================================================
 # HELPERS
 # =========================================================
+
 def safe_html(value):
-    """Prevent profile/PDF names from breaking HTML."""
     return (
         str(value)
         .replace("&", "&amp;")
@@ -149,30 +152,33 @@ def create_default_tasks():
 
 
 def go_to(page):
-    """Reliable Streamlit navigation."""
     st.session_state.page = page
     st.rerun()
 
 
 def render_back_button():
-    st.markdown("<br>", unsafe_allow_html=True)
-
     if st.button(
         "⬅️ Back to Dashboard",
         key=f"back_{st.session_state.page}",
-        use_container_width=False,
     ):
         go_to("dashboard")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
 
 # =========================================================
-# UI / CSS
+# CSS
 # =========================================================
-st.markdown(
-    """
+#
+# IMPORTANT:
+# The complete CSS is inside <style> and unsafe_allow_html=True.
+# This prevents the CSS from being displayed as normal text.
+# =========================================================
+
+CSS = """
 <style>
+
+/* ================================
+   GLOBAL
+================================ */
 
 #MainMenu {
     visibility: hidden;
@@ -196,27 +202,10 @@ footer {
     padding-bottom: 3rem;
 }
 
-/* =====================================================
-   TYPOGRAPHY
-===================================================== */
 
-.main-title {
-    font-size: 2.25rem;
-    font-weight: 800;
-    color: #1e293b;
-    margin-bottom: 0.15rem;
-}
-
-.subtitle {
-    color: #64748b;
-    font-size: 1rem;
-    margin-bottom: 1.3rem;
-}
-
-
-/* =====================================================
+/* ================================
    SIDEBAR
-===================================================== */
+================================ */
 
 [data-testid="stSidebar"] {
     background: #ffffff !important;
@@ -233,13 +222,12 @@ footer {
     font-weight: 600 !important;
     padding: 12px 14px !important;
     margin: 4px 0 !important;
-    transition: all .2s ease !important;
 }
 
 [data-testid="stSidebar"] .stButton > button:hover {
-    background: #e2e8f0 !important;
+    background: #eef2ff !important;
     color: #4f46e5 !important;
-    transform: translateX(2px);
+    border-color: #c7d2fe !important;
 }
 
 [data-testid="stSidebar"] h1,
@@ -248,18 +236,23 @@ footer {
     color: #334155 !important;
 }
 
+
+/* ================================
+   SIDEBAR BRAND
+================================ */
+
 .sidebar-logo {
     text-align: left;
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     font-weight: 800;
     color: #4f46e5 !important;
-    padding: .65rem .15rem .15rem;
+    padding: 10px 2px 2px;
 }
 
 .sidebar-subtitle {
     color: #94a3b8 !important;
-    font-size: .8rem;
-    margin: 0 0 1rem .15rem;
+    font-size: 0.8rem;
+    margin-bottom: 18px;
 }
 
 .sidebar-mini {
@@ -272,9 +265,27 @@ footer {
 }
 
 
-/* =====================================================
-   DASHBOARD HEADER
-===================================================== */
+/* ================================
+   TITLES
+================================ */
+
+.main-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    color: #64748b;
+    font-size: 1rem;
+    margin-bottom: 20px;
+}
+
+
+/* ================================
+   DASHBOARD HERO
+================================ */
 
 .dash-header {
     background: linear-gradient(
@@ -282,16 +293,11 @@ footer {
         #4f46e5 0%,
         #7c3aed 100%
     );
-
     border-radius: 24px;
     padding: 32px;
     color: white;
-    margin-bottom: 30px;
-
-    box-shadow:
-        0 20px 25px -5px
-        rgba(79, 70, 229, 0.15);
-
+    margin-bottom: 25px;
+    box-shadow: 0 18px 35px rgba(79,70,229,0.16);
     position: relative;
     overflow: hidden;
 }
@@ -299,14 +305,12 @@ footer {
 .dash-header::after {
     content: "";
     position: absolute;
-    top: -50%;
-    right: -10%;
-
-    width: 300px;
-    height: 300px;
-
-    background: rgba(255,255,255,0.1);
+    width: 260px;
+    height: 260px;
+    right: -80px;
+    top: -100px;
     border-radius: 50%;
+    background: rgba(255,255,255,0.10);
 }
 
 .dash-welcome {
@@ -316,57 +320,48 @@ footer {
 }
 
 .dash-date {
-    opacity: 0.9;
     font-size: 1rem;
+    opacity: 0.9;
 }
 
 
-/* =====================================================
+/* ================================
    STAT CARDS
-===================================================== */
+================================ */
 
 .stat-card {
-    background: white;
-    border-radius: 16px;
+    background: #ffffff;
+    border-radius: 17px;
     padding: 20px;
-
-    box-shadow:
-        0 4px 6px -1px
-        rgba(0, 0, 0, 0.05);
-
-    border: 1px solid #f1f5f9;
-
-    transition: transform 0.2s;
-    height: 100%;
+    border: 1px solid #e2e8f0;
+    min-height: 145px;
+    box-shadow: 0 5px 12px rgba(15,23,42,0.05);
+    transition: 0.2s;
 }
 
 .stat-card:hover {
     transform: translateY(-3px);
-
-    box-shadow:
-        0 10px 15px -3px
-        rgba(0, 0, 0, 0.1);
+    box-shadow: 0 12px 25px rgba(15,23,42,0.08);
 }
 
 .stat-icon {
     font-size: 1.8rem;
-    margin-bottom: 10px;
     display: block;
 }
 
 .stat-label {
     color: #64748b;
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: 0.78rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    margin-top: 8px;
 }
 
 .stat-value {
     color: #1e293b;
-    font-size: 1.75rem;
+    font-size: 1.7rem;
     font-weight: 800;
-    margin: 5px 0;
+    margin: 4px 0;
 }
 
 .stat-sub {
@@ -375,26 +370,21 @@ footer {
 }
 
 
-/* =====================================================
-   SECTION
-===================================================== */
+/* ================================
+   SECTION HEADERS
+================================ */
 
 .section-header {
     font-size: 1.25rem;
-    font-weight: 700;
+    font-weight: 750;
     color: #1e293b;
-
-    margin: 30px 0 15px 0;
-
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    margin: 28px 0 15px;
 }
 
 
-/* =====================================================
-   PDF UPLOAD HERO
-===================================================== */
+/* ================================
+   PDF UPLOAD
+================================ */
 
 .pdf-upload-card {
     background: linear-gradient(
@@ -402,23 +392,16 @@ footer {
         #eef2ff 0%,
         #f5f3ff 100%
     );
-
     border: 2px dashed #818cf8;
-
     border-radius: 20px;
-
     padding: 28px;
-
-    margin-bottom: 20px;
-
-    box-shadow:
-        0 8px 20px
-        rgba(79, 70, 229, 0.08);
+    margin-bottom: 15px;
+    box-shadow: 0 8px 20px rgba(79,70,229,0.07);
 }
 
 .pdf-upload-icon {
     font-size: 2.8rem;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
 }
 
 .pdf-upload-title {
@@ -429,40 +412,39 @@ footer {
 
 .pdf-upload-text {
     color: #6366f1;
+    font-size: 0.92rem;
+    line-height: 1.6;
     margin-top: 5px;
-    font-size: .92rem;
 }
 
 .pdf-feature {
     background: white;
-    border-radius: 14px;
-    padding: 15px;
-
+    border-radius: 16px;
+    padding: 20px;
     border: 1px solid #e0e7ff;
-
     height: 100%;
 }
 
 .pdf-feature-icon {
-    font-size: 1.5rem;
+    font-size: 1.7rem;
 }
 
 .pdf-feature-title {
-    font-weight: 700;
+    font-weight: 750;
     color: #1e293b;
-    margin-top: 5px;
+    margin-top: 7px;
 }
 
 .pdf-feature-text {
     color: #64748b;
-    font-size: .8rem;
-    margin-top: 4px;
+    font-size: 0.85rem;
+    line-height: 1.8;
 }
 
 
-/* =====================================================
+/* ================================
    FOCUS CARD
-===================================================== */
+================================ */
 
 .focus-card {
     background: linear-gradient(
@@ -470,10 +452,8 @@ footer {
         #fff1f2 0%,
         #ffe4e6 100%
     );
-
     border: 1px solid #fecdd3;
     border-radius: 16px;
-
     padding: 24px;
     color: #be123c;
 }
@@ -481,39 +461,25 @@ footer {
 .focus-title {
     font-weight: 800;
     font-size: 1.2rem;
-    margin-bottom: 5px;
 }
 
 .focus-desc {
     opacity: 0.8;
-    font-size: 0.95rem;
+    margin-top: 5px;
 }
 
 
-/* =====================================================
+/* ================================
    QUICK ACTIONS
-===================================================== */
+================================ */
 
 .action-card {
     background: white;
-
     border: 1px solid #e2e8f0;
-
     border-radius: 14px;
-
-    padding: 16px;
-
+    padding: 16px 10px;
     text-align: center;
-
-    min-height: 95px;
-
-    transition: all 0.2s;
-}
-
-.action-card:hover {
-    border-color: #818cf8;
-    background: #eef2ff;
-    transform: translateY(-2px);
+    min-height: 90px;
 }
 
 .action-icon {
@@ -524,66 +490,46 @@ footer {
 .action-label {
     font-weight: 650;
     color: #334155;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     margin-top: 6px;
 }
 
 
-/* =====================================================
-   TASK
-===================================================== */
+/* ================================
+   TASKS
+================================ */
 
 .task-item {
     background: white;
-
-    border: 1px solid #f1f5f9;
-
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
-
-    padding: 15px;
-
+    padding: 14px;
     margin-bottom: 10px;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.task-content {
-    flex-grow: 1;
 }
 
 .task-title {
-    font-weight: 600;
+    font-weight: 650;
     color: #1e293b;
-    font-size: 0.95rem;
 }
 
 .task-subject {
     font-size: 0.8rem;
     color: #64748b;
-    margin-top: 2px;
+    margin-top: 3px;
 }
 
 
-/* =====================================================
-   SUBJECT CARD
-===================================================== */
+/* ================================
+   SUBJECT PROGRESS
+================================ */
 
 .subject-card {
     background: white;
-
     border-radius: 16px;
-
     padding: 20px;
-
-    border: 1px solid #f1f5f9;
-
-    box-shadow:
-        0 2px 4px
-        rgba(0,0,0,0.02);
-
+    border: 1px solid #e2e8f0;
     margin-bottom: 12px;
+    box-shadow: 0 3px 8px rgba(15,23,42,0.03);
 }
 
 .subject-name {
@@ -600,88 +546,62 @@ footer {
 
 .progress-bar-bg {
     background: #f1f5f9;
-
     height: 8px;
-
-    border-radius: 4px;
-
+    border-radius: 5px;
     overflow: hidden;
-
-    margin-bottom: 8px;
 }
 
 .progress-bar-fill {
     height: 100%;
-
     background: linear-gradient(
         90deg,
         #4f46e5,
         #818cf8
     );
-
-    border-radius: 4px;
+    border-radius: 5px;
 }
 
 .progress-text {
     font-size: 0.8rem;
     color: #64748b;
     text-align: right;
+    margin-top: 5px;
 }
 
 
-/* =====================================================
-   GENERAL CARD
-===================================================== */
+/* ================================
+   GENERAL CARDS
+================================ */
 
 .card {
     background: white;
-
     border: 1px solid #e2e8f0;
-
     border-radius: 16px;
-
     padding: 20px;
-
     margin-bottom: 15px;
-
-    box-shadow:
-        0 2px 4px
-        rgba(0,0,0,0.02);
+    box-shadow: 0 2px 6px rgba(15,23,42,0.03);
 }
 
 .info-card {
     background: #eff6ff;
-
     border: 1px solid #dbeafe;
-
     border-radius: 12px;
-
     padding: 15px;
-
     color: #1e40af;
-
     margin-bottom: 20px;
 }
 
 
-/* =====================================================
+/* ================================
    FILE CARD
-===================================================== */
+================================ */
 
 .file-card {
     background: white;
-
     border: 1px solid #e2e8f0;
-
     border-radius: 14px;
-
     padding: 15px;
-
     margin-bottom: 10px;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
 }
 
 .file-name {
@@ -691,28 +611,63 @@ footer {
 
 .file-meta {
     color: #64748b;
-    font-size: .8rem;
+    font-size: 0.8rem;
 }
 
 
-/* =====================================================
+/* ================================
    BUTTONS
-===================================================== */
+================================ */
 
 .stButton > button {
     border-radius: 10px !important;
     font-weight: 650 !important;
 }
 
+.stButton > button[kind="primary"] {
+    border-radius: 11px !important;
+}
+
+
+/* ================================
+   CHAT
+================================ */
+
+[data-testid="stChatMessage"] {
+    border-radius: 14px;
+}
+
+
+/* ================================
+   MOBILE
+================================ */
+
+@media (max-width: 768px) {
+
+    .dash-welcome {
+        font-size: 1.5rem;
+    }
+
+    .main-title {
+        font-size: 1.7rem;
+    }
+
+    .dash-header {
+        padding: 24px;
+    }
+}
+
 </style>
-""",
-    unsafe_allow_html=True,
-)
+"""
+
+# Apply CSS as HTML
+st.markdown(CSS, unsafe_allow_html=True)
 
 
 # =========================================================
-# PDF PROCESSING & RAG
+# LANGCHAIN / RAG
 # =========================================================
+
 try:
     from langchain.text_splitter import RecursiveCharacterTextSplitter
     from langchain.vectorstores import FAISS
@@ -724,16 +679,21 @@ except ImportError:
     LANGCHAIN_AVAILABLE = False
 
 
-# Create uploads directory
+# =========================================================
+# UPLOAD DIRECTORY
+# =========================================================
+
 os.makedirs("uploads", exist_ok=True)
 
 
+# =========================================================
+# PDF PROCESSING
+# =========================================================
+
 def process_uploaded_pdf(uploaded_file):
-    """
-    Extract PDF text and create RAG vector store.
-    """
 
     try:
+
         text = extract_text_from_pdf(uploaded_file)
 
         if text and text.strip():
@@ -742,13 +702,11 @@ def process_uploaded_pdf(uploaded_file):
                 f"\n\n--- {uploaded_file.name} ---\n{text}"
             )
 
-        # -------------------------------------------------
         # RAG
-        # -------------------------------------------------
-
         if LANGCHAIN_AVAILABLE and text and text.strip():
 
             try:
+
                 api_key = st.secrets.get(
                     "GEMINI_API_KEY",
                     ""
@@ -772,11 +730,9 @@ def process_uploaded_pdf(uploaded_file):
 
                     new_store = FAISS.from_documents(
                         chunks,
-                        embeddings
+                        embeddings,
                     )
 
-                    # If another vector store already exists,
-                    # merge the new PDF into it.
                     if st.session_state.vector_store:
 
                         try:
@@ -807,8 +763,9 @@ def process_uploaded_pdf(uploaded_file):
 
 
 # =========================================================
-# SIDEBAR NAVIGATION
+# SIDEBAR
 # =========================================================
+
 with st.sidebar:
 
     st.markdown(
@@ -823,7 +780,7 @@ with st.sidebar:
 
         <div style="
             font-size:.82rem;
-            color:#64748b!important;
+            color:#64748b;
             margin-bottom:14px;
         ">
             Your Smart Academic Companion
@@ -859,8 +816,8 @@ with st.sidebar:
         <div class="sidebar-mini">
 
             <div style="
-                font-size:.8rem;
-                opacity:.75;
+                font-size:.75rem;
+                color:#64748b;
             ">
                 SIGNED IN AS
             </div>
@@ -875,7 +832,7 @@ with st.sidebar:
 
             <div style="
                 font-size:.8rem;
-                opacity:.75;
+                color:#64748b;
                 margin-top:3px;
             ">
                 {safe_html(branch)}
@@ -890,6 +847,7 @@ with st.sidebar:
 # =========================================================
 # PAGE 1 — DASHBOARD
 # =========================================================
+
 if st.session_state.page == "dashboard":
 
     today = date.today()
@@ -901,14 +859,17 @@ if st.session_state.page == "dashboard":
     )
 
     days_left = (
-        max((exam_date - today).days, 0)
+        max(
+            (exam_date - today).days,
+            0
+        )
         if exam_date
         else 0
     )
 
-    # -----------------------------------------------------
+    # -----------------------------------------
     # TASKS
-    # -----------------------------------------------------
+    # -----------------------------------------
 
     tasks = st.session_state.get(
         "generated_tasks",
@@ -932,15 +893,15 @@ if st.session_state.page == "dashboard":
 
     task_progress = (
         round(
-            (completed_count / total_tasks) * 100
+            completed_count / total_tasks * 100
         )
         if total_tasks
         else 0
     )
 
-    # -----------------------------------------------------
+    # -----------------------------------------
     # HERO
-    # -----------------------------------------------------
+    # -----------------------------------------
 
     st.markdown(
         f"""
@@ -952,7 +913,7 @@ if st.session_state.page == "dashboard":
 
             <div class="dash-date">
                 📅 {today.strftime('%A, %d %B %Y')}
-                •
+                &nbsp; • &nbsp;
                 🎯 Your personal academic command center
             </div>
 
@@ -961,45 +922,41 @@ if st.session_state.page == "dashboard":
         unsafe_allow_html=True,
     )
 
-    # -----------------------------------------------------
+    # -----------------------------------------
     # STATISTICS
-    # -----------------------------------------------------
+    # -----------------------------------------
 
     stats_cols = st.columns(4)
 
     stat_data = [
-        {
-            "icon": "🔥",
-            "label": "Study Streak",
-            "value": "7 days",
-            "sub": "Keep momentum",
-            "color": "#f59e0b",
-        },
-        {
-            "icon": "⏳",
-            "label": "Exam Countdown",
-            "value": f"{days_left} days",
-            "sub": "Stay consistent",
-            "color": "#3b82f6",
-        },
-        {
-            "icon": "📄",
-            "label": "Study Materials",
-            "value": str(
-                len(
-                    st.session_state.uploaded_files
-                )
-            ),
-            "sub": "PDFs uploaded",
-            "color": "#6366f1",
-        },
-        {
-            "icon": "📈",
-            "label": "Overall Progress",
-            "value": f"{task_progress}%",
-            "sub": "Learning journey",
-            "color": "#10b981",
-        },
+        (
+            "🔥",
+            "Study Streak",
+            "7 days",
+            "Keep momentum",
+            "#f59e0b",
+        ),
+        (
+            "⏳",
+            "Exam Countdown",
+            f"{days_left} days",
+            "Stay consistent",
+            "#3b82f6",
+        ),
+        (
+            "📄",
+            "Study Materials",
+            str(len(st.session_state.uploaded_files)),
+            "PDFs uploaded",
+            "#6366f1",
+        ),
+        (
+            "📈",
+            "Overall Progress",
+            f"{task_progress}%",
+            "Learning journey",
+            "#10b981",
+        ),
     ]
 
     for col, data in zip(
@@ -1007,30 +964,29 @@ if st.session_state.page == "dashboard":
         stat_data
     ):
 
+        icon, label, value, sub, border_color = data
+
         with col:
 
             st.markdown(
                 f"""
                 <div class="stat-card"
-                     style="
-                     border-top:4px solid
-                     {data['color']};
-                     ">
+                     style="border-top:4px solid {border_color};">
 
                     <span class="stat-icon">
-                        {data['icon']}
+                        {icon}
                     </span>
 
                     <div class="stat-label">
-                        {data['label']}
+                        {label}
                     </div>
 
                     <div class="stat-value">
-                        {data['value']}
+                        {value}
                     </div>
 
                     <div class="stat-sub">
-                        {data['sub']}
+                        {sub}
                     </div>
 
                 </div>
@@ -1038,14 +994,12 @@ if st.session_state.page == "dashboard":
                 unsafe_allow_html=True,
             )
 
-    # =====================================================
-    # IMPORTANT PDF UPLOAD SECTION
-    # =====================================================
+    # -----------------------------------------
+    # STUDY MATERIALS
+    # -----------------------------------------
 
     st.markdown(
-        '<div class="section-header">'
-        '📄 Study Materials'
-        '</div>',
+        '<div class="section-header">📄 Study Materials</div>',
         unsafe_allow_html=True,
     )
 
@@ -1070,8 +1024,8 @@ if st.session_state.page == "dashboard":
                 <div class="pdf-upload-text">
                     Add lecture notes, textbooks,
                     question papers and other PDF
-                    study materials to make your
-                    AI Assistant smarter.
+                    materials to make your AI
+                    Assistant smarter.
                 </div>
 
             </div>
@@ -1113,9 +1067,9 @@ if st.session_state.page == "dashboard":
             unsafe_allow_html=True,
         )
 
-    # =====================================================
+    # -----------------------------------------
     # MAIN CONTENT
-    # =====================================================
+    # -----------------------------------------
 
     main_left, main_right = st.columns(
         [2, 1]
@@ -1123,14 +1077,10 @@ if st.session_state.page == "dashboard":
 
     with main_left:
 
-        # -------------------------------------------------
         # TODAY'S PRIORITY
-        # -------------------------------------------------
 
         st.markdown(
-            '<div class="section-header">'
-            '🎯 Today\'s Priority'
-            '</div>',
+            '<div class="section-header">🎯 Today\'s Priority</div>',
             unsafe_allow_html=True,
         )
 
@@ -1153,55 +1103,29 @@ if st.session_state.page == "dashboard":
             unsafe_allow_html=True,
         )
 
-        # -------------------------------------------------
         # QUICK ACTIONS
-        # -------------------------------------------------
 
         st.markdown(
-            '<div class="section-header">'
-            '⚡ Quick Actions'
-            '</div>',
+            '<div class="section-header">⚡ Quick Actions</div>',
             unsafe_allow_html=True,
         )
 
         action_cols = st.columns(5)
 
         actions = [
-            (
-                "📄",
-                "Study Materials",
-                "pdf_upload"
-            ),
-            (
-                "🤖",
-                "Smart Chat",
-                "smart_chat"
-            ),
-            (
-                "📝",
-                "Summarizer",
-                "summarizer"
-            ),
-            (
-                "✅",
-                "MCQ Gen",
-                "mcq_generator"
-            ),
-            (
-                "❓",
-                "Important Qs",
-                "important_questions"
-            ),
+            ("📄", "Study Materials", "pdf_upload"),
+            ("🤖", "Smart Chat", "smart_chat"),
+            ("📝", "Summarizer", "summarizer"),
+            ("✅", "MCQ Gen", "mcq_generator"),
+            ("❓", "Important Qs", "important_questions"),
         ]
 
-        for col, (
-            icon,
-            label,
-            page_name
-        ) in zip(
+        for col, action in zip(
             action_cols,
             actions
         ):
+
+            icon, label, page_name = action
 
             with col:
 
@@ -1223,20 +1147,16 @@ if st.session_state.page == "dashboard":
                 )
 
                 if st.button(
-                    f"Open",
+                    "Open",
                     key=f"dashboard_action_{page_name}",
                     use_container_width=True,
                 ):
                     go_to(page_name)
 
-        # -------------------------------------------------
-        # TASK LIST
-        # -------------------------------------------------
+        # TASKS
 
         st.markdown(
-            '<div class="section-header">'
-            '📋 Today\'s Tasks'
-            '</div>',
+            '<div class="section-header">📋 Today\'s Tasks</div>',
             unsafe_allow_html=True,
         )
 
@@ -1274,40 +1194,30 @@ if st.session_state.page == "dashboard":
 
                 st.rerun()
 
+            border = (
+                "#10b981"
+                if is_completed
+                else "#cbd5e1"
+            )
+
+            text_style = (
+                "text-decoration:line-through;color:#94a3b8;"
+                if is_completed
+                else ""
+            )
+
             st.markdown(
                 f"""
                 <div class="task-item"
-                     style="
-                     border-left:4px solid
-                     {'#10b981' if is_completed else '#cbd5e1'};
-                     ">
+                     style="border-left:4px solid {border};">
 
-                    <div class="task-content">
+                    <div class="task-title"
+                         style="{text_style}">
+                        {safe_html(task.get("title", "Task"))}
+                    </div>
 
-                        <div class="task-title"
-                             style="
-                             {'text-decoration:line-through;color:#94a3b8;'
-                             if is_completed else ''}
-                             ">
-
-                            {safe_html(
-                                task.get(
-                                    'title',
-                                    'Task'
-                                )
-                            )}
-
-                        </div>
-
-                        <div class="task-subject">
-                            {safe_html(
-                                task.get(
-                                    'subject',
-                                    ''
-                                )
-                            )}
-                        </div>
-
+                    <div class="task-subject">
+                        {safe_html(task.get("subject", ""))}
                     </div>
 
                 </div>
@@ -1315,68 +1225,48 @@ if st.session_state.page == "dashboard":
                 unsafe_allow_html=True,
             )
 
-    # =====================================================
+    # -----------------------------------------
     # RIGHT SIDE
-    # =====================================================
+    # -----------------------------------------
 
     with main_right:
 
         st.markdown(
-            '<div class="section-header">'
-            '📚 Subject Progress'
-            '</div>',
+            '<div class="section-header">📚 Subject Progress</div>',
             unsafe_allow_html=True,
         )
 
         subjects = [
-            {
-                "short": "DBMS",
-                "full": "Database Management",
-                "prog": 78,
-            },
-            {
-                "short": "OOP",
-                "full": "Object Oriented Programming",
-                "prog": 68,
-            },
-            {
-                "short": "DSU",
-                "full": "Data Structures",
-                "prog": 61,
-            },
-            {
-                "short": "DTE",
-                "full": "Digital Techniques",
-                "prog": 52,
-            },
+            ("DBMS", "Database Management", 78),
+            ("OOP", "Object Oriented Programming", 68),
+            ("DSU", "Data Structures", 61),
+            ("DTE", "Digital Techniques", 52),
         ]
 
-        for sub in subjects:
+        for short, full, prog in subjects:
 
             st.markdown(
                 f"""
                 <div class="subject-card">
 
                     <div class="subject-name">
-                        {sub['short']}
+                        {short}
                     </div>
 
                     <div class="subject-full">
-                        {sub['full']}
+                        {full}
                     </div>
 
                     <div class="progress-bar-bg">
 
                         <div class="progress-bar-fill"
-                             style="
-                             width:{sub['prog']}%;
-                             ">
+                             style="width:{prog}%;">
                         </div>
 
                     </div>
 
                     <div class="progress-text">
-                        {sub['prog']}% Completed
+                        {prog}% Completed
                     </div>
 
                 </div>
@@ -1386,20 +1276,19 @@ if st.session_state.page == "dashboard":
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # -------------------------------------------------
-        # AI TIP
-        # -------------------------------------------------
-
         st.markdown(
             """
             <div class="info-card">
 
                 <b>🤖 AI Coach Tip</b>
+
                 <br><br>
 
                 Based on your recent activity,
                 try focusing on
                 <b>Data Structures</b> today.
+
+                <br><br>
 
                 Use the
                 <b>MCQ Generator</b>
@@ -1414,28 +1303,22 @@ if st.session_state.page == "dashboard":
 # =========================================================
 # PAGE 2 — PDF UPLOAD
 # =========================================================
+
 elif st.session_state.page == "pdf_upload":
 
     st.markdown(
-        '<h1 class="main-title">'
-        '📄 Study Materials'
-        '</h1>',
+        '<h1 class="main-title">📄 Study Materials</h1>',
         unsafe_allow_html=True,
     )
 
     st.markdown(
         '<p class="subtitle">'
-        'Upload lecture notes and PDFs to power '
-        'your AI learning tools.'
+        'Upload lecture notes and PDFs to power your AI learning tools.'
         '</p>',
         unsafe_allow_html=True,
     )
 
     render_back_button()
-
-    # -----------------------------------------------------
-    # UPLOAD AREA
-    # -----------------------------------------------------
 
     st.markdown(
         """
@@ -1468,10 +1351,6 @@ elif st.session_state.page == "pdf_upload":
         key="pdf_uploader",
     )
 
-    # -----------------------------------------------------
-    # PROCESS FILES
-    # -----------------------------------------------------
-
     if uploaded:
 
         for file in uploaded:
@@ -1491,18 +1370,11 @@ elif st.session_state.page == "pdf_upload":
                         file
                     )
 
-                    text = process_uploaded_pdf(
-                        file
-                    )
-
-                    # Save physical PDF
-                    safe_filename = os.path.basename(
-                        file.name
-                    )
+                    text = process_uploaded_pdf(file)
 
                     save_path = os.path.join(
                         "uploads",
-                        safe_filename
+                        os.path.basename(file.name)
                     )
 
                     with open(
@@ -1519,20 +1391,13 @@ elif st.session_state.page == "pdf_upload":
                     f"({len(text):,} characters)"
                 )
 
-    # -----------------------------------------------------
-    # UPLOADED FILES
-    # -----------------------------------------------------
-
     if st.session_state.uploaded_files:
 
-        st.markdown(
-            "### 📚 Your Uploaded Files"
-        )
+        st.markdown("### 📚 Your Uploaded Files")
 
         st.info(
             f"You currently have "
-            f"**{len(st.session_state.uploaded_files)} "
-            f"PDF(s)** uploaded."
+            f"**{len(st.session_state.uploaded_files)} PDF(s)** uploaded."
         )
 
         for index, file in enumerate(
@@ -1540,7 +1405,7 @@ elif st.session_state.page == "pdf_upload":
         ):
 
             file_col, delete_col = st.columns(
-                [5, 1]
+                [6, 1]
             )
 
             with file_col:
@@ -1549,17 +1414,13 @@ elif st.session_state.page == "pdf_upload":
                     f"""
                     <div class="file-card">
 
-                        <div>
+                        <div class="file-name">
+                            📄 {safe_html(file.name)}
+                        </div>
 
-                            <div class="file-name">
-                                📄 {safe_html(file.name)}
-                            </div>
-
-                            <div class="file-meta">
-                                {file.size / 1024:.1f} KB
-                                • PDF Study Material
-                            </div>
-
+                        <div class="file-meta">
+                            {file.size / 1024:.1f} KB
+                            • PDF Study Material
                         </div>
 
                     </div>
@@ -1572,10 +1433,8 @@ elif st.session_state.page == "pdf_upload":
                 if st.button(
                     "🗑️",
                     key=f"delete_pdf_{index}",
-                    help=f"Remove {file.name}",
                 ):
 
-                    # Remove text belonging to the file
                     marker = (
                         f"\n\n--- {file.name} ---\n"
                     )
@@ -1589,7 +1448,6 @@ elif st.session_state.page == "pdf_upload":
                             )
                         )
 
-                        # Remove until next PDF marker
                         if "\n\n--- " in after:
 
                             after = (
@@ -1608,12 +1466,10 @@ elif st.session_state.page == "pdf_upload":
                             before + after
                         )
 
-                    # Remove from session
                     st.session_state.uploaded_files.pop(
                         index
                     )
 
-                    # Remove physical file
                     physical_path = os.path.join(
                         "uploads",
                         os.path.basename(file.name)
@@ -1624,7 +1480,6 @@ elif st.session_state.page == "pdf_upload":
                         if os.path.exists(
                             physical_path
                         ):
-
                             os.remove(
                                 physical_path
                             )
@@ -1632,16 +1487,11 @@ elif st.session_state.page == "pdf_upload":
                     except Exception:
                         pass
 
-                    # Rebuild vector store
                     st.session_state.vector_store = None
 
                     st.rerun()
 
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # -------------------------------------------------
-        # CLEAR ALL
-        # -------------------------------------------------
 
         if st.button(
             "🗑️ Clear All Files",
@@ -1660,7 +1510,6 @@ elif st.session_state.page == "pdf_upload":
                     if os.path.exists(
                         physical_path
                     ):
-
                         os.remove(
                             physical_path
                         )
@@ -1679,18 +1528,13 @@ elif st.session_state.page == "pdf_upload":
 
             st.rerun()
 
-        # -------------------------------------------------
-        # RAG STATUS
-        # -------------------------------------------------
-
         if (
             LANGCHAIN_AVAILABLE
             and st.session_state.vector_store
         ):
 
             st.success(
-                "🤖 RAG vector store is ready "
-                "for Smart Chat."
+                "🤖 RAG vector store is ready for Smart Chat."
             )
 
         else:
@@ -1706,10 +1550,7 @@ elif st.session_state.page == "pdf_upload":
         st.markdown(
             """
             <div class="card"
-                 style="
-                 text-align:center;
-                 padding:35px;
-                 ">
+                 style="text-align:center;padding:40px;">
 
                 <div style="font-size:3rem;">
                     📂
@@ -1733,19 +1574,17 @@ elif st.session_state.page == "pdf_upload":
 # =========================================================
 # PAGE 3 — SMART CHAT
 # =========================================================
+
 elif st.session_state.page == "smart_chat":
 
     st.markdown(
-        '<h1 class="main-title">'
-        '💬 Smart Chat'
-        '</h1>',
+        '<h1 class="main-title">💬 Smart Chat</h1>',
         unsafe_allow_html=True,
     )
 
     st.markdown(
         '<p class="subtitle">'
-        'Ask questions about your uploaded '
-        'study materials.'
+        'Ask questions about your uploaded study materials.'
         '</p>',
         unsafe_allow_html=True,
     )
@@ -1755,15 +1594,13 @@ elif st.session_state.page == "smart_chat":
     if not st.session_state.uploaded_files:
 
         st.warning(
-            "📄 Please upload PDFs first from "
-            "Study Materials."
+            "📄 Please upload PDFs first from Study Materials."
         )
 
         if st.button(
             "📄 Go to Study Materials",
             type="primary",
         ):
-
             go_to("pdf_upload")
 
     else:
@@ -1798,7 +1635,6 @@ elif st.session_state.page == "smart_chat":
             )
 
             with st.chat_message("user"):
-
                 st.markdown(prompt)
 
             with st.chat_message("assistant"):
@@ -1848,19 +1684,17 @@ elif st.session_state.page == "smart_chat":
 # =========================================================
 # PAGE 4 — SUMMARIZER
 # =========================================================
+
 elif st.session_state.page == "summarizer":
 
     st.markdown(
-        '<h1 class="main-title">'
-        '📝 Study Notes Summarizer'
-        '</h1>',
+        '<h1 class="main-title">📝 Study Notes Summarizer</h1>',
         unsafe_allow_html=True,
     )
 
     st.markdown(
         '<p class="subtitle">'
-        'Turn long study materials into concise '
-        'revision notes.'
+        'Turn long study materials into concise revision notes.'
         '</p>',
         unsafe_allow_html=True,
     )
@@ -1877,7 +1711,6 @@ elif st.session_state.page == "summarizer":
             "📄 Upload Study Material",
             type="primary",
         ):
-
             go_to("pdf_upload")
 
     else:
@@ -1922,19 +1755,17 @@ elif st.session_state.page == "summarizer":
 # =========================================================
 # PAGE 5 — MCQ GENERATOR
 # =========================================================
+
 elif st.session_state.page == "mcq_generator":
 
     st.markdown(
-        '<h1 class="main-title">'
-        '✅ MCQ Generator'
-        '</h1>',
+        '<h1 class="main-title">✅ MCQ Generator</h1>',
         unsafe_allow_html=True,
     )
 
     st.markdown(
         '<p class="subtitle">'
-        'Generate practice questions from your '
-        'uploaded materials.'
+        'Generate practice questions from your uploaded materials.'
         '</p>',
         unsafe_allow_html=True,
     )
@@ -1951,7 +1782,6 @@ elif st.session_state.page == "mcq_generator":
             "📄 Upload Study Material",
             type="primary",
         ):
-
             go_to("pdf_upload")
 
     else:
@@ -2004,19 +1834,17 @@ elif st.session_state.page == "mcq_generator":
 # =========================================================
 # PAGE 6 — IMPORTANT QUESTIONS
 # =========================================================
+
 elif st.session_state.page == "important_questions":
 
     st.markdown(
-        '<h1 class="main-title">'
-        '❓ Important Exam Questions'
-        '</h1>',
+        '<h1 class="main-title">❓ Important Exam Questions</h1>',
         unsafe_allow_html=True,
     )
 
     st.markdown(
         '<p class="subtitle">'
-        'Generate high-priority questions for '
-        'examination preparation.'
+        'Generate high-priority questions for examination preparation.'
         '</p>',
         unsafe_allow_html=True,
     )
@@ -2033,7 +1861,6 @@ elif st.session_state.page == "important_questions":
             "📄 Upload Study Material",
             type="primary",
         ):
-
             go_to("pdf_upload")
 
     else:
@@ -2057,11 +1884,9 @@ elif st.session_state.page == "important_questions":
 
                 try:
 
-                    questions = (
-                        generate_important_questions(
-                            st.session_state.pdf_text,
-                            num_questions,
-                        )
+                    questions = generate_important_questions(
+                        st.session_state.pdf_text,
+                        num_questions,
                     )
 
                     st.markdown(
@@ -2074,8 +1899,7 @@ elif st.session_state.page == "important_questions":
                     )
 
                     save_chat(
-                        f"Generate "
-                        f"{num_questions} important questions",
+                        f"Generate {num_questions} important questions",
                         questions,
                     )
 
@@ -2090,19 +1914,17 @@ elif st.session_state.page == "important_questions":
 # =========================================================
 # PAGE 7 — STUDY PLANNER
 # =========================================================
+
 elif st.session_state.page == "study_plan":
 
     st.markdown(
-        '<h1 class="main-title">'
-        '📅 Smart Study Planner'
-        '</h1>',
+        '<h1 class="main-title">📅 Smart Study Planner</h1>',
         unsafe_allow_html=True,
     )
 
     st.markdown(
         '<p class="subtitle">'
-        'Create a structured preparation plan and '
-        'track your daily tasks.'
+        'Create a structured preparation plan and track your daily tasks.'
         '</p>',
         unsafe_allow_html=True,
     )
@@ -2173,7 +1995,7 @@ elif st.session_state.page == "study_plan":
             ],
             default=[
                 "Data Structures",
-                "DBMS"
+                "DBMS",
             ],
         )
 
@@ -2243,7 +2065,7 @@ elif st.session_state.page == "study_plan":
                         ),
                         "subjects": [
                             subject,
-                            next_subject
+                            next_subject,
                         ],
                         "tasks": [
                             f"Study {subject} concepts",
@@ -2278,9 +2100,7 @@ elif st.session_state.page == "study_plan":
                         }
                     )
 
-            st.session_state.generated_tasks = (
-                generated
-            )
+            st.session_state.generated_tasks = generated
 
             st.session_state.completed_tasks = set()
 
@@ -2315,11 +2135,7 @@ elif st.session_state.page == "study_plan":
 
                     <div style="margin-top:8px;">
                         <b>📚 Subjects:</b>
-                        {safe_html(
-                            ", ".join(
-                                p["subjects"]
-                            )
-                        )}
+                        {safe_html(", ".join(p["subjects"]))}
                     </div>
 
                     <div style="margin-top:7px;">
@@ -2338,28 +2154,25 @@ elif st.session_state.page == "study_plan":
             )
 
         st.info(
-            "Your first 7 days of tasks are also "
-            "available on the Dashboard for "
-            "progress tracking."
+            "Your first 7 days of tasks are also available "
+            "on the Dashboard for progress tracking."
         )
 
 
 # =========================================================
 # PAGE 8 — STUDENT PROFILE
 # =========================================================
+
 elif st.session_state.page == "settings":
 
     st.markdown(
-        '<h1 class="main-title">'
-        '⚙️ Student Profile'
-        '</h1>',
+        '<h1 class="main-title">⚙️ Student Profile</h1>',
         unsafe_allow_html=True,
     )
 
     st.markdown(
         '<p class="subtitle">'
-        'Manage your academic information and '
-        'study preferences.'
+        'Manage your academic information and study preferences.'
         '</p>',
         unsafe_allow_html=True,
     )
@@ -2371,6 +2184,7 @@ elif st.session_state.page == "settings":
         <div class="info-card">
 
             <b>🎓 Why complete your profile?</b>
+
             <br><br>
 
             Your branch, semester, exam date and
@@ -2398,9 +2212,7 @@ elif st.session_state.page == "settings":
             + timedelta(days=12)
         )
 
-    with st.form(
-        "profile_form"
-    ):
+    with st.form("profile_form"):
 
         p1, p2 = st.columns(2)
 
@@ -2479,8 +2291,7 @@ elif st.session_state.page == "settings":
                     time_options.index(
                         current_time
                     )
-                    if current_time
-                    in time_options
+                    if current_time in time_options
                     else 0
                 ),
             )
@@ -2518,9 +2329,7 @@ elif st.session_state.page == "settings":
                     "✅ Student profile saved successfully!"
                 )
 
-                st.session_state.page = (
-                    "dashboard"
-                )
+                st.session_state.page = "dashboard"
 
                 st.rerun()
 
