@@ -427,262 +427,198 @@ with st.sidebar:
 
 
 # =========================================================
-# PAGE 1 — ATTRACTIVE DASHBOARD
-# =========================================================
+# PAGE 1 — DASHBOARD
 if st.session_state.page == "dashboard":
+    today = date.today()
+    display_name = name.strip() if name and name.strip() else "Student"
+    days_left = max((exam_date - today).days, 0) if exam_date else 0
 
-    exam_days = days_until_exam()
-    task_progress = progress_percent()
+    tasks = st.session_state.get("tasks", [])
+    if not isinstance(tasks, list):
+        tasks = []
 
-    if not st.session_state.generated_tasks:
-        st.session_state.generated_tasks = create_default_tasks()
-
-    total_tasks = len(st.session_state.generated_tasks)
-    completed_tasks = len(st.session_state.completed_tasks)
+    total_tasks = len(tasks)
+    completed_tasks = sum(
+        1 for t in tasks
+        if isinstance(t, dict)
+        and str(t.get("status", "")).lower() in {"done", "completed", "complete"}
+    )
+    task_progress = round((completed_tasks / total_tasks) * 100) if total_tasks else 72
 
     st.markdown(
         f"""
-        <div class="hero">
-            <h1>Welcome back, {safe_html(name)}! 👋</h1>
-            <p>Your AI-powered academic workspace — plan smarter, learn faster,
-            and stay ready for your exams.</p>
+        <div class="dash-welcome">
+            <div class="hello">Hello, {safe_html(display_name)}! 👋</div>
+            <div class="date">{today.strftime("%A, %d %B %Y")} • Your personal academic command center</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Top statistics
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-        st.markdown(
-            f"""
-            <div class="stat-card">
-                <div class="stat-icon">⏱️</div>
-                <div class="stat-value">{study_hours:g}h</div>
-                <div class="stat-label">Daily Study Goal</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with c2:
-        st.markdown(
-            f"""
-            <div class="stat-card">
-                <div class="stat-icon">📚</div>
-                <div class="stat-value">{len(st.session_state.uploaded_files)}</div>
-                <div class="stat-label">Study Materials</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with c3:
-        countdown_text = "—" if exam_days is None else max(exam_days, 0)
-        st.markdown(
-            f"""
-            <div class="stat-card">
-                <div class="stat-icon">🎯</div>
-                <div class="stat-value">{countdown_text}</div>
-                <div class="stat-label">Days Until Exam</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with c4:
-        st.markdown(
-            f"""
-            <div class="stat-card">
-                <div class="stat-icon">✅</div>
-                <div class="stat-value">{completed_tasks}/{total_tasks}</div>
-                <div class="stat-label">Tasks Completed</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("")
-
-    # Profile + countdown + progress
-    left, right = st.columns([1.15, 1.85])
-
-    with left:
-        st.markdown(
-            f"""
-            <div class="profile-card">
-                <div class="avatar">{safe_html(name[:1].upper())}</div>
-                <div class="profile-name">{safe_html(name)}</div>
-                <div class="profile-meta">💻 {safe_html(branch)}</div>
-                <div class="profile-meta">🎓 {safe_html(semester)}</div>
-                <div class="profile-meta">🏫 {safe_html(college)}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        if st.button("⚙️ Edit Student Profile", use_container_width=True):
-            st.session_state.page = "settings"
-            st.rerun()
-
-    with right:
-        if exam_days is None:
-            st.markdown(
-                """
-                <div class="countdown">
-                    <div class="count-label">EXAM COUNTDOWN</div>
-                    <div class="count-number">📅</div>
-                    <div class="count-label">
-                        Set your exam date in Student Profile
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        elif exam_days < 0:
-            st.markdown(
-                f"""
-                <div class="countdown">
-                    <div class="count-label">EXAM STATUS</div>
-                    <div class="count-number">🎉</div>
-                    <div class="count-label">
-                        Your exam date was {abs(exam_days)} day(s) ago.
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                f"""
-                <div class="countdown">
-                    <div class="count-label">EXAM COUNTDOWN</div>
-                    <div class="count-number">{exam_days}</div>
-                    <div class="count-label">
-                        days remaining • {exam_date.strftime("%d %b %Y")}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        st.markdown(
-            f"""
-            <div class="card">
-                <b>📈 Today's Progress</b>
-                <div class="progress-wrap">
-                    <div class="progress-fill" style="width:{task_progress}%"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;color:#73798a;font-size:.85rem;">
-                    <span>{completed_tasks} completed</span>
-                    <span>{task_progress}%</span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # Today's tasks
-    st.markdown('<div class="section-title">📌 Today\'s Study Tasks</div>', unsafe_allow_html=True)
-
-    task_col, action_col = st.columns([2.3, 1])
-
-    with task_col:
-        for task in st.session_state.generated_tasks:
-            task_id = task["id"]
-            checked = task_id in st.session_state.completed_tasks
-
-            new_value = st.checkbox(
-                task["title"],
-                value=checked,
-                key=f"dashboard_task_{task_id}",
-            )
-
-            if new_value:
-                st.session_state.completed_tasks.add(task_id)
-            else:
-                st.session_state.completed_tasks.discard(task_id)
-
-            st.caption(f"📘 {task['subject']}")
-
-    with action_col:
-        st.markdown(
-            """
-            <div class="info-card">
-                <b>🤖 AI Study Coach</b>
-                <p style="color:#73798a;font-size:.86rem;">
-                Use the Study Planner to create a personalized plan based
-                on your exam date, subjects and study hours.
-                </p>
-                </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        if st.button("📅 Open Study Planner", use_container_width=True):
-            st.session_state.page = "study_plan"
-            st.rerun()
-
-        if st.button("💬 Ask AI a Doubt", use_container_width=True):
-            st.session_state.page = "smart_chat"
-            st.rerun()
-
-    # Feature shortcuts
-    st.markdown('<div class="section-title">🚀 Quick Learning Tools</div>', unsafe_allow_html=True)
-
-    f1, f2, f3, f4 = st.columns(4)
-
-    feature_data = [
-        ("📄", "Study Materials", "Upload notes and PDFs", "pdf_upload"),
-        ("🧠", "Smart Chat", "Ask questions from notes", "smart_chat"),
-        ("📝", "Summarizer", "Create quick revision notes", "summarizer"),
-        ("✅", "MCQ Practice", "Test your preparation", "mcq_generator"),
+    stats = st.columns(4)
+    stat_data = [
+        ("🔥", "Study streak", "7 days", "Keep the momentum"),
+        ("⏳", "Exam countdown", f"{days_left} days", "Stay consistent"),
+        ("✅", "Tasks completed", f"{completed_tasks}/{total_tasks}" if total_tasks else "0", "Today's progress"),
+        ("📈", "Overall progress", f"{task_progress}%", "Learning journey"),
     ]
 
-    for col, (icon, title, desc, page_key) in zip(
-        [f1, f2, f3, f4], feature_data
-    ):
+    for col, (icon, label, value, hint) in zip(stats, stat_data):
         with col:
             st.markdown(
                 f"""
-                <div class="feature-card">
-                    <div class="feature-icon">{icon}</div>
-                    <div class="feature-title">{title}</div>
-                    <div class="feature-text">{desc}</div>
+                <div class="stat-tile">
+                    <div class="icon">{icon}</div>
+                    <div class="label">{label}</div>
+                    <div class="value">{value}</div>
+                    <div class="hint">{hint}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-            if st.button(
-                f"Open {title}",
-                key=f"quick_{page_key}",
-                use_container_width=True,
-            ):
-                st.session_state.page = page_key
-                st.rerun()
 
-    # Recent conversations
-    st.markdown('<div class="section-title">💬 Recent AI Activity</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dash-section-title">Today at a glance</div>', unsafe_allow_html=True)
+    left, right = st.columns([1.7, 1])
 
-    if history:
-        for q, a, chat_date in history:
-            question = safe_html(str(q)[:110])
+    with left:
+        st.markdown(
+            """
+            <div class="panel">
+                <div class="panel-title">🎯 Today's Focus</div>
+                <div class="panel-subtitle">Your most important study session</div>
+                <div class="focus-card">
+                    <div class="small">RECOMMENDED FOCUS</div>
+                    <div class="subject">📚 Deep Study Session</div>
+                    <div class="time">45 minutes • One topic • Zero distractions</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("### ")
+        st.markdown('<div class="panel"><div class="panel-title">⚡ Quick Actions</div><div class="panel-subtitle">Jump directly into your study tools</div>', unsafe_allow_html=True)
+        qa = st.columns(4)
+        quick_actions = [
+            ("🤖", "Smart Chat", "smart_chat"),
+            ("📝", "Generate MCQ", "mcq_generator"),
+            ("📄", "Summarize", "summarizer"),
+            ("🎯", "Important Qs", "important_questions"),
+        ]
+        for col, (icon, label, target) in zip(qa, quick_actions):
+            with col:
+                if st.button(f"{icon} {label}", use_container_width=True):
+                    st.session_state.page = target
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with right:
+        st.markdown(
+            """
+            <div class="ai-panel">
+                <div class="ai-title">🤖 AI Coach</div>
+                <div class="ai-text">
+                    Based on your learning activity, start with one focused
+                    revision session and then test yourself with MCQs.
+                </div>
+                <br><span class="badge">Personalized recommendation</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("### ")
+        st.markdown(
+            """
+            <div class="panel">
+                <div class="panel-title">📅 Upcoming</div>
+                <div class="panel-subtitle">Your next academic actions</div>
+                <div class="event-card">
+                    <div class="event-title">🧠 Study Planner</div>
+                    <div class="event-meta">Review today's tasks and priorities</div>
+                </div>
+                <div class="event-card">
+                    <div class="event-title">📚 Revision</div>
+                    <div class="event-meta">Use Smart Chat to clear doubts</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown('<div class="dash-section-title">📚 My Learning Progress</div>', unsafe_allow_html=True)
+    subjects = [
+        ("DBMS", "Database Management", 78),
+        ("OOP", "Object Oriented Programming", 68),
+        ("DSU", "Data Structures", 61),
+        ("DTE", "Digital Techniques", 52),
+    ]
+
+    subject_cols = st.columns(4)
+    for col, (short_name, full_name, progress) in zip(subject_cols, subjects):
+        with col:
             st.markdown(
                 f"""
-                <div class="chat-bubble">
-                    <strong>Q:</strong> {question}
-                    <br>
-                    <small style="color:#73798a;">{safe_html(chat_date)}</small>
+                <div class="subject-card">
+                    <div class="subject-name">{short_name}</div>
+                    <div class="subject-meta">{full_name}</div>
+                    <div style="display:flex;justify-content:space-between;font-size:.73rem;color:#64748b;">
+                        <span>Progress</span><b>{progress}%</b>
+                    </div>
+                    <div class="progress-line">
+                        <div class="progress-fill" style="width:{progress}%"></div>
+                    </div>
+                    <span class="badge">Keep improving</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-    else:
-        st.info("No recent AI conversations yet. Start with Smart Chat!")
 
+    st.markdown('<div class="dash-section-title">🚀 Your Study Journey</div>', unsafe_allow_html=True)
+    journey_left, journey_right = st.columns([1, 2])
 
-# =========================================================
+    with journey_left:
+        degree = int(task_progress * 3.6)
+        st.markdown(
+            f"""
+            <div class="panel" style="text-align:center;">
+                <div class="panel-title">Weekly Progress</div>
+                <div class="progress-ring" style="background:conic-gradient(#4f46e5 0deg, #8b5cf6 {degree}deg, #e2e8f0 {degree}deg 360deg);">
+                    <div class="progress-ring-inner">
+                        <div class="progress-number">{task_progress}%</div>
+                        <div class="progress-caption">COMPLETED</div>
+                    </div>
+                </div>
+                <div style="color:#64748b;font-size:.78rem;">Small steps every day create big results.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with journey_right:
+        st.markdown(
+            """
+            <div class="panel">
+                <div class="panel-title">🏆 Achievements</div>
+                <div class="panel-subtitle">Milestones for your learning journey</div>
+                <div class="event-card">
+                    <div class="event-title">🔥 Consistency Starter</div>
+                    <div class="event-meta">Study regularly and build your streak</div>
+                </div>
+                <div class="event-card">
+                    <div class="event-title">🧠 Quiz Master</div>
+                    <div class="event-meta">Practice with generated MCQs</div>
+                </div>
+                <div class="event-card">
+                    <div class="event-title">🎯 Exam Ready</div>
+                    <div class="event-meta">Complete your planned revision targets</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+# PAGE 2 — PDF UPLOAD
 # PAGE 2 — PDF UPLOAD
 # =========================================================
 elif st.session_state.page == "pdf_upload":
