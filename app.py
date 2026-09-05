@@ -103,6 +103,14 @@ def safe_html(value):
     )
 
 
+def render_html(content):
+    """
+    Render custom HTML using Streamlit's HTML renderer.
+    This prevents HTML from appearing as raw source code.
+    """
+    st.html(content)
+
+
 def go_to(page):
     st.session_state.page = page
     st.rerun()
@@ -652,10 +660,6 @@ footer {
 # =========================================================
 # APPLY CSS
 # =========================================================
-#
-# IMPORTANT:
-# st.html() is used instead of st.markdown()
-# =========================================================
 
 st.html(CSS)
 
@@ -699,10 +703,6 @@ def process_uploaded_pdf(uploaded_file):
             st.session_state.pdf_text += (
                 f"\n\n--- {uploaded_file.name} ---\n{text}"
             )
-
-        # =================================================
-        # RAG
-        # =================================================
 
         if LANGCHAIN_AVAILABLE and text and text.strip():
 
@@ -773,7 +773,7 @@ def process_uploaded_pdf(uploaded_file):
 
 with st.sidebar:
 
-    st.markdown(
+    render_html(
         """
         <div class="sidebar-logo">
             🎓 AI College Assistant
@@ -790,8 +790,7 @@ with st.sidebar:
         ">
             Your Smart Academic Companion
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     pages = [
@@ -817,7 +816,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    st.markdown(
+    render_html(
         f"""
         <div class="sidebar-mini">
 
@@ -845,8 +844,7 @@ with st.sidebar:
             </div>
 
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -872,10 +870,6 @@ if st.session_state.page == "dashboard":
         if exam_date
         else 0
     )
-
-    # =====================================================
-    # TASKS
-    # =====================================================
 
     tasks = st.session_state.get(
         "generated_tasks",
@@ -909,7 +903,7 @@ if st.session_state.page == "dashboard":
     # HERO
     # =====================================================
 
-    st.markdown(
+    render_html(
         f"""
         <div class="dash-header">
 
@@ -924,8 +918,7 @@ if st.session_state.page == "dashboard":
             </div>
 
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     # =====================================================
@@ -974,7 +967,7 @@ if st.session_state.page == "dashboard":
 
         with col:
 
-            st.markdown(
+            render_html(
                 f"""
                 <div class="stat-card"
                      style="border-top:4px solid {border_color};">
@@ -996,24 +989,22 @@ if st.session_state.page == "dashboard":
                     </div>
 
                 </div>
-                """,
-                unsafe_allow_html=True,
+                """
             )
 
     # =====================================================
     # STUDY MATERIALS
     # =====================================================
 
-    st.markdown(
-        '<div class="section-header">📄 Study Materials</div>',
-        unsafe_allow_html=True,
+    render_html(
+        '<div class="section-header">📄 Study Materials</div>'
     )
 
     pdf_left, pdf_right = st.columns([2.2, 1])
 
     with pdf_left:
 
-        st.markdown(
+        render_html(
             """
             <div class="pdf-upload-card">
 
@@ -1033,8 +1024,7 @@ if st.session_state.page == "dashboard":
                 </div>
 
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
         if st.button(
@@ -1048,7 +1038,7 @@ if st.session_state.page == "dashboard":
 
     with pdf_right:
 
-        st.markdown(
+        render_html(
             """
             <div class="pdf-feature">
 
@@ -1068,8 +1058,7 @@ if st.session_state.page == "dashboard":
                 </div>
 
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
     # =====================================================
@@ -1080,14 +1069,11 @@ if st.session_state.page == "dashboard":
 
     with main_left:
 
-        # TODAY'S PRIORITY
-
-        st.markdown(
-            '<div class="section-header">🎯 Today\'s Priority</div>',
-            unsafe_allow_html=True,
+        render_html(
+            '<div class="section-header">🎯 Today\'s Priority</div>'
         )
 
-        st.markdown(
+        render_html(
             """
             <div class="focus-card">
 
@@ -1102,17 +1088,15 @@ if st.session_state.page == "dashboard":
                 </div>
 
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
         # =================================================
         # QUICK ACTIONS
         # =================================================
 
-        st.markdown(
-            '<div class="section-header">⚡ Quick Actions</div>',
-            unsafe_allow_html=True,
+        render_html(
+            '<div class="section-header">⚡ Quick Actions</div>'
         )
 
         action_cols = st.columns(5)
@@ -1134,7 +1118,7 @@ if st.session_state.page == "dashboard":
 
             with col:
 
-                st.markdown(
+                render_html(
                     f"""
                     <div class="action-card">
 
@@ -1147,8 +1131,7 @@ if st.session_state.page == "dashboard":
                         </span>
 
                     </div>
-                    """,
-                    unsafe_allow_html=True,
+                    """
                 )
 
                 if st.button(
@@ -1163,9 +1146,8 @@ if st.session_state.page == "dashboard":
         # TASKS
         # =================================================
 
-        st.markdown(
-            '<div class="section-header">📋 Today\'s Tasks</div>',
-            unsafe_allow_html=True,
+        render_html(
+            '<div class="section-header">📋 Today\'s Tasks</div>'
         )
 
         for i, task in enumerate(tasks):
@@ -1217,7 +1199,7 @@ if st.session_state.page == "dashboard":
                 else ""
             )
 
-            st.markdown(
+            render_html(
                 f"""
                 <div class="task-item"
                      style="border-left:4px solid {border};">
@@ -1232,8 +1214,7 @@ if st.session_state.page == "dashboard":
                     </div>
 
                 </div>
-                """,
-                unsafe_allow_html=True,
+                """
             )
 
     # =====================================================
@@ -1242,9 +1223,8 @@ if st.session_state.page == "dashboard":
 
     with main_right:
 
-        st.markdown(
-            '<div class="section-header">📚 Subject Progress</div>',
-            unsafe_allow_html=True,
+        render_html(
+            '<div class="section-header">📚 Subject Progress</div>'
         )
 
         subjects = [
@@ -1256,7 +1236,7 @@ if st.session_state.page == "dashboard":
 
         for short, full, prog in subjects:
 
-            st.markdown(
+            render_html(
                 f"""
                 <div class="subject-card">
 
@@ -1281,13 +1261,12 @@ if st.session_state.page == "dashboard":
                     </div>
 
                 </div>
-                """,
-                unsafe_allow_html=True,
+                """
             )
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        render_html("<br>")
 
-        st.markdown(
+        render_html(
             """
             <div class="info-card">
 
@@ -1306,8 +1285,7 @@ if st.session_state.page == "dashboard":
                 after studying to test your knowledge.
 
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
 
@@ -1317,21 +1295,19 @@ if st.session_state.page == "dashboard":
 
 elif st.session_state.page == "pdf_upload":
 
-    st.markdown(
-        '<h1 class="main-title">📄 Study Materials</h1>',
-        unsafe_allow_html=True,
+    render_html(
+        '<h1 class="main-title">📄 Study Materials</h1>'
     )
 
-    st.markdown(
+    render_html(
         '<p class="subtitle">'
         'Upload lecture notes and PDFs to power your AI learning tools.'
-        '</p>',
-        unsafe_allow_html=True,
+        '</p>'
     )
 
     render_back_button()
 
-    st.markdown(
+    render_html(
         """
         <div class="pdf-upload-card">
 
@@ -1351,8 +1327,7 @@ elif st.session_state.page == "pdf_upload":
             </div>
 
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     uploaded = st.file_uploader(
@@ -1423,7 +1398,7 @@ elif st.session_state.page == "pdf_upload":
 
             with file_col:
 
-                st.markdown(
+                render_html(
                     f"""
                     <div class="file-card">
 
@@ -1437,8 +1412,7 @@ elif st.session_state.page == "pdf_upload":
                         </div>
 
                     </div>
-                    """,
-                    unsafe_allow_html=True,
+                    """
                 )
 
             with delete_col:
@@ -1505,7 +1479,7 @@ elif st.session_state.page == "pdf_upload":
 
                     st.rerun()
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        render_html("<br>")
 
         if st.button(
             "🗑️ Clear All Files",
@@ -1562,7 +1536,7 @@ elif st.session_state.page == "pdf_upload":
 
     else:
 
-        st.markdown(
+        render_html(
             """
             <div class="card"
                  style="text-align:center;padding:40px;">
@@ -1581,8 +1555,7 @@ elif st.session_state.page == "pdf_upload":
                 </p>
 
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
 
@@ -1592,16 +1565,14 @@ elif st.session_state.page == "pdf_upload":
 
 elif st.session_state.page == "smart_chat":
 
-    st.markdown(
-        '<h1 class="main-title">💬 Smart Chat</h1>',
-        unsafe_allow_html=True,
+    render_html(
+        '<h1 class="main-title">💬 Smart Chat</h1>'
     )
 
-    st.markdown(
+    render_html(
         '<p class="subtitle">'
         'Ask questions about your uploaded study materials.'
-        '</p>',
-        unsafe_allow_html=True,
+        '</p>'
     )
 
     render_back_button()
@@ -1704,16 +1675,14 @@ elif st.session_state.page == "smart_chat":
 
 elif st.session_state.page == "summarizer":
 
-    st.markdown(
-        '<h1 class="main-title">📝 Study Notes Summarizer</h1>',
-        unsafe_allow_html=True,
+    render_html(
+        '<h1 class="main-title">📝 Study Notes Summarizer</h1>'
     )
 
-    st.markdown(
+    render_html(
         '<p class="subtitle">'
         'Turn long study materials into concise revision notes.'
-        '</p>',
-        unsafe_allow_html=True,
+        '</p>'
     )
 
     render_back_button()
@@ -1749,13 +1718,12 @@ elif st.session_state.page == "summarizer":
                         st.session_state.pdf_text
                     )
 
-                    st.markdown(
+                    render_html(
                         f"""
                         <div class="card">
                             {summary}
                         </div>
-                        """,
-                        unsafe_allow_html=True,
+                        """
                     )
 
                     save_chat(
@@ -1776,16 +1744,14 @@ elif st.session_state.page == "summarizer":
 
 elif st.session_state.page == "mcq_generator":
 
-    st.markdown(
-        '<h1 class="main-title">✅ MCQ Generator</h1>',
-        unsafe_allow_html=True,
+    render_html(
+        '<h1 class="main-title">✅ MCQ Generator</h1>'
     )
 
-    st.markdown(
+    render_html(
         '<p class="subtitle">'
         'Generate practice questions from your uploaded materials.'
-        '</p>',
-        unsafe_allow_html=True,
+        '</p>'
     )
 
     render_back_button()
@@ -1829,13 +1795,12 @@ elif st.session_state.page == "mcq_generator":
                         num_questions,
                     )
 
-                    st.markdown(
+                    render_html(
                         f"""
                         <div class="card">
                             {mcqs}
                         </div>
-                        """,
-                        unsafe_allow_html=True,
+                        """
                     )
 
                     save_chat(
@@ -1856,16 +1821,14 @@ elif st.session_state.page == "mcq_generator":
 
 elif st.session_state.page == "important_questions":
 
-    st.markdown(
-        '<h1 class="main-title">❓ Important Exam Questions</h1>',
-        unsafe_allow_html=True,
+    render_html(
+        '<h1 class="main-title">❓ Important Exam Questions</h1>'
     )
 
-    st.markdown(
+    render_html(
         '<p class="subtitle">'
         'Generate high-priority questions for examination preparation.'
-        '</p>',
-        unsafe_allow_html=True,
+        '</p>'
     )
 
     render_back_button()
@@ -1909,13 +1872,12 @@ elif st.session_state.page == "important_questions":
                         num_questions,
                     )
 
-                    st.markdown(
+                    render_html(
                         f"""
                         <div class="card">
                             {questions}
                         </div>
-                        """,
-                        unsafe_allow_html=True,
+                        """
                     )
 
                     save_chat(
@@ -1937,16 +1899,14 @@ elif st.session_state.page == "important_questions":
 
 elif st.session_state.page == "study_plan":
 
-    st.markdown(
-        '<h1 class="main-title">📅 Smart Study Planner</h1>',
-        unsafe_allow_html=True,
+    render_html(
+        '<h1 class="main-title">📅 Smart Study Planner</h1>'
     )
 
-    st.markdown(
+    render_html(
         '<p class="subtitle">'
         'Create a structured preparation plan and track your daily tasks.'
-        '</p>',
-        unsafe_allow_html=True,
+        '</p>'
     )
 
     render_back_button()
@@ -2107,16 +2067,11 @@ elif st.session_state.page == "study_plan":
 
                     generated.append(
                         {
-                            "id":
-                                f"plan_{p['day']}_{index}",
-
-                            "title":
-                                task,
-
-                            "subject":
-                                ", ".join(
-                                    p["subjects"]
-                                ),
+                            "id": f"plan_{p['day']}_{index}",
+                            "title": task,
+                            "subject": ", ".join(
+                                p["subjects"]
+                            ),
                         }
                     )
 
@@ -2144,7 +2099,7 @@ elif st.session_state.page == "study_plan":
                 p["tasks"]
             )
 
-            st.markdown(
+            render_html(
                 f"""
                 <div class="card">
 
@@ -2173,8 +2128,7 @@ elif st.session_state.page == "study_plan":
                     </div>
 
                 </div>
-                """,
-                unsafe_allow_html=True,
+                """
             )
 
         st.info(
@@ -2189,21 +2143,19 @@ elif st.session_state.page == "study_plan":
 
 elif st.session_state.page == "settings":
 
-    st.markdown(
-        '<h1 class="main-title">⚙️ Student Profile</h1>',
-        unsafe_allow_html=True,
+    render_html(
+        '<h1 class="main-title">⚙️ Student Profile</h1>'
     )
 
-    st.markdown(
+    render_html(
         '<p class="subtitle">'
         'Manage your academic information and study preferences.'
-        '</p>',
-        unsafe_allow_html=True,
+        '</p>'
     )
 
     render_back_button()
 
-    st.markdown(
+    render_html(
         """
         <div class="info-card">
 
@@ -2217,8 +2169,7 @@ elif st.session_state.page == "settings":
             information.
 
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     profile_exam_default = (
