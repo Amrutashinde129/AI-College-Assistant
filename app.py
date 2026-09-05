@@ -103,27 +103,17 @@ def safe_html(value):
     )
 
 
-def days_until_exam():
-    if not exam_date:
-        return None
-
-    return (exam_date - date.today()).days
+def go_to(page):
+    st.session_state.page = page
+    st.rerun()
 
 
-def progress_percent():
-    tasks = st.session_state.get("generated_tasks", [])
-
-    if not tasks:
-        return 0
-
-    completed = len(
-        st.session_state.get("completed_tasks", set())
-    )
-
-    return min(
-        100,
-        int((completed / len(tasks)) * 100)
-    )
+def render_back_button():
+    if st.button(
+        "⬅️ Back to Dashboard",
+        key=f"back_{st.session_state.page}",
+    ):
+        go_to("dashboard")
 
 
 def create_default_tasks():
@@ -151,34 +141,16 @@ def create_default_tasks():
     ]
 
 
-def go_to(page):
-    st.session_state.page = page
-    st.rerun()
-
-
-def render_back_button():
-    if st.button(
-        "⬅️ Back to Dashboard",
-        key=f"back_{st.session_state.page}",
-    ):
-        go_to("dashboard")
-
-
 # =========================================================
-# CSS
-# =========================================================
-#
-# IMPORTANT:
-# The complete CSS is inside <style> and unsafe_allow_html=True.
-# This prevents the CSS from being displayed as normal text.
+# CUSTOM CSS
 # =========================================================
 
 CSS = """
 <style>
 
-/* ================================
+/* =====================================================
    GLOBAL
-================================ */
+===================================================== */
 
 #MainMenu {
     visibility: hidden;
@@ -203,9 +175,9 @@ footer {
 }
 
 
-/* ================================
+/* =====================================================
    SIDEBAR
-================================ */
+===================================================== */
 
 [data-testid="stSidebar"] {
     background: #ffffff !important;
@@ -214,7 +186,7 @@ footer {
 
 [data-testid="stSidebar"] .stButton > button {
     width: 100%;
-    background: #f1f5f9 !important;
+    background: #f8fafc !important;
     color: #475569 !important;
     border: 1px solid transparent !important;
     border-radius: 12px !important;
@@ -230,44 +202,32 @@ footer {
     border-color: #c7d2fe !important;
 }
 
-[data-testid="stSidebar"] h1,
-[data-testid="stSidebar"] p,
-[data-testid="stSidebar"] label {
-    color: #334155 !important;
-}
-
-
-/* ================================
-   SIDEBAR BRAND
-================================ */
-
 .sidebar-logo {
-    text-align: left;
     font-size: 1.35rem;
     font-weight: 800;
-    color: #4f46e5 !important;
+    color: #4f46e5;
     padding: 10px 2px 2px;
 }
 
 .sidebar-subtitle {
-    color: #94a3b8 !important;
+    color: #94a3b8;
     font-size: 0.8rem;
     margin-bottom: 18px;
 }
 
 .sidebar-mini {
-    background: #f8fafc !important;
-    color: #334155 !important;
-    border: 1px solid #e2e8f0 !important;
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
     padding: 15px;
     margin-top: 14px;
 }
 
 
-/* ================================
+/* =====================================================
    TITLES
-================================ */
+===================================================== */
 
 .main-title {
     font-size: 2.25rem;
@@ -282,10 +242,17 @@ footer {
     margin-bottom: 20px;
 }
 
+.section-header {
+    font-size: 1.25rem;
+    font-weight: 750;
+    color: #1e293b;
+    margin: 28px 0 15px;
+}
 
-/* ================================
+
+/* =====================================================
    DASHBOARD HERO
-================================ */
+===================================================== */
 
 .dash-header {
     background: linear-gradient(
@@ -293,11 +260,15 @@ footer {
         #4f46e5 0%,
         #7c3aed 100%
     );
+
     border-radius: 24px;
     padding: 32px;
     color: white;
     margin-bottom: 25px;
-    box-shadow: 0 18px 35px rgba(79,70,229,0.16);
+
+    box-shadow:
+        0 18px 35px rgba(79,70,229,0.16);
+
     position: relative;
     overflow: hidden;
 }
@@ -325,9 +296,9 @@ footer {
 }
 
 
-/* ================================
+/* =====================================================
    STAT CARDS
-================================ */
+===================================================== */
 
 .stat-card {
     background: #ffffff;
@@ -335,13 +306,18 @@ footer {
     padding: 20px;
     border: 1px solid #e2e8f0;
     min-height: 145px;
-    box-shadow: 0 5px 12px rgba(15,23,42,0.05);
+
+    box-shadow:
+        0 5px 12px rgba(15,23,42,0.05);
+
     transition: 0.2s;
 }
 
 .stat-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 25px rgba(15,23,42,0.08);
+
+    box-shadow:
+        0 12px 25px rgba(15,23,42,0.08);
 }
 
 .stat-icon {
@@ -370,21 +346,9 @@ footer {
 }
 
 
-/* ================================
-   SECTION HEADERS
-================================ */
-
-.section-header {
-    font-size: 1.25rem;
-    font-weight: 750;
-    color: #1e293b;
-    margin: 28px 0 15px;
-}
-
-
-/* ================================
+/* =====================================================
    PDF UPLOAD
-================================ */
+===================================================== */
 
 .pdf-upload-card {
     background: linear-gradient(
@@ -392,11 +356,14 @@ footer {
         #eef2ff 0%,
         #f5f3ff 100%
     );
+
     border: 2px dashed #818cf8;
     border-radius: 20px;
     padding: 28px;
     margin-bottom: 15px;
-    box-shadow: 0 8px 20px rgba(79,70,229,0.07);
+
+    box-shadow:
+        0 8px 20px rgba(79,70,229,0.07);
 }
 
 .pdf-upload-icon {
@@ -442,9 +409,9 @@ footer {
 }
 
 
-/* ================================
+/* =====================================================
    FOCUS CARD
-================================ */
+===================================================== */
 
 .focus-card {
     background: linear-gradient(
@@ -452,6 +419,7 @@ footer {
         #fff1f2 0%,
         #ffe4e6 100%
     );
+
     border: 1px solid #fecdd3;
     border-radius: 16px;
     padding: 24px;
@@ -469,9 +437,9 @@ footer {
 }
 
 
-/* ================================
+/* =====================================================
    QUICK ACTIONS
-================================ */
+===================================================== */
 
 .action-card {
     background: white;
@@ -495,9 +463,9 @@ footer {
 }
 
 
-/* ================================
+/* =====================================================
    TASKS
-================================ */
+===================================================== */
 
 .task-item {
     background: white;
@@ -519,9 +487,9 @@ footer {
 }
 
 
-/* ================================
+/* =====================================================
    SUBJECT PROGRESS
-================================ */
+===================================================== */
 
 .subject-card {
     background: white;
@@ -529,7 +497,9 @@ footer {
     padding: 20px;
     border: 1px solid #e2e8f0;
     margin-bottom: 12px;
-    box-shadow: 0 3px 8px rgba(15,23,42,0.03);
+
+    box-shadow:
+        0 3px 8px rgba(15,23,42,0.03);
 }
 
 .subject-name {
@@ -553,11 +523,13 @@ footer {
 
 .progress-bar-fill {
     height: 100%;
+
     background: linear-gradient(
         90deg,
         #4f46e5,
         #818cf8
     );
+
     border-radius: 5px;
 }
 
@@ -569,9 +541,9 @@ footer {
 }
 
 
-/* ================================
+/* =====================================================
    GENERAL CARDS
-================================ */
+===================================================== */
 
 .card {
     background: white;
@@ -579,7 +551,9 @@ footer {
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 15px;
-    box-shadow: 0 2px 6px rgba(15,23,42,0.03);
+
+    box-shadow:
+        0 2px 6px rgba(15,23,42,0.03);
 }
 
 .info-card {
@@ -592,9 +566,9 @@ footer {
 }
 
 
-/* ================================
+/* =====================================================
    FILE CARD
-================================ */
+===================================================== */
 
 .file-card {
     background: white;
@@ -615,32 +589,46 @@ footer {
 }
 
 
-/* ================================
+/* =====================================================
    BUTTONS
-================================ */
+===================================================== */
 
 .stButton > button {
     border-radius: 10px !important;
     font-weight: 650 !important;
+    transition: 0.2s !important;
 }
 
-.stButton > button[kind="primary"] {
-    border-radius: 11px !important;
+.stButton > button:hover {
+    transform: translateY(-1px);
 }
 
 
-/* ================================
+/* =====================================================
    CHAT
-================================ */
+===================================================== */
 
 [data-testid="stChatMessage"] {
     border-radius: 14px;
 }
 
 
-/* ================================
+/* =====================================================
+   INPUTS
+===================================================== */
+
+.stTextInput input,
+.stNumberInput input,
+.stSelectbox,
+.stMultiSelect,
+.stDateInput input {
+    border-radius: 10px !important;
+}
+
+
+/* =====================================================
    MOBILE
-================================ */
+===================================================== */
 
 @media (max-width: 768px) {
 
@@ -660,8 +648,16 @@ footer {
 </style>
 """
 
-# Apply CSS as HTML
-st.markdown(CSS, unsafe_allow_html=True)
+
+# =========================================================
+# APPLY CSS
+# =========================================================
+#
+# IMPORTANT:
+# st.html() is used instead of st.markdown()
+# =========================================================
+
+st.html(CSS)
 
 
 # =========================================================
@@ -669,6 +665,7 @@ st.markdown(CSS, unsafe_allow_html=True)
 # =========================================================
 
 try:
+
     from langchain.text_splitter import RecursiveCharacterTextSplitter
     from langchain.vectorstores import FAISS
     from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -676,6 +673,7 @@ try:
     LANGCHAIN_AVAILABLE = True
 
 except ImportError:
+
     LANGCHAIN_AVAILABLE = False
 
 
@@ -702,7 +700,10 @@ def process_uploaded_pdf(uploaded_file):
                 f"\n\n--- {uploaded_file.name} ---\n{text}"
             )
 
+        # =================================================
         # RAG
+        # =================================================
+
         if LANGCHAIN_AVAILABLE and text and text.strip():
 
             try:
@@ -736,13 +737,17 @@ def process_uploaded_pdf(uploaded_file):
                     if st.session_state.vector_store:
 
                         try:
+
                             st.session_state.vector_store.merge_from(
                                 new_store
                             )
+
                         except Exception:
+
                             st.session_state.vector_store = new_store
 
                     else:
+
                         st.session_state.vector_store = new_store
 
             except Exception as e:
@@ -807,6 +812,7 @@ with st.sidebar:
             key=f"nav_{key}",
             use_container_width=True,
         ):
+
             go_to(key)
 
     st.markdown("---")
@@ -867,9 +873,9 @@ if st.session_state.page == "dashboard":
         else 0
     )
 
-    # -----------------------------------------
+    # =====================================================
     # TASKS
-    # -----------------------------------------
+    # =====================================================
 
     tasks = st.session_state.get(
         "generated_tasks",
@@ -899,9 +905,9 @@ if st.session_state.page == "dashboard":
         else 0
     )
 
-    # -----------------------------------------
+    # =====================================================
     # HERO
-    # -----------------------------------------
+    # =====================================================
 
     st.markdown(
         f"""
@@ -922,9 +928,9 @@ if st.session_state.page == "dashboard":
         unsafe_allow_html=True,
     )
 
-    # -----------------------------------------
+    # =====================================================
     # STATISTICS
-    # -----------------------------------------
+    # =====================================================
 
     stats_cols = st.columns(4)
 
@@ -994,18 +1000,16 @@ if st.session_state.page == "dashboard":
                 unsafe_allow_html=True,
             )
 
-    # -----------------------------------------
+    # =====================================================
     # STUDY MATERIALS
-    # -----------------------------------------
+    # =====================================================
 
     st.markdown(
         '<div class="section-header">📄 Study Materials</div>',
         unsafe_allow_html=True,
     )
 
-    pdf_left, pdf_right = st.columns(
-        [2.2, 1]
-    )
+    pdf_left, pdf_right = st.columns([2.2, 1])
 
     with pdf_left:
 
@@ -1039,6 +1043,7 @@ if st.session_state.page == "dashboard":
             use_container_width=True,
             type="primary",
         ):
+
             go_to("pdf_upload")
 
     with pdf_right:
@@ -1067,13 +1072,11 @@ if st.session_state.page == "dashboard":
             unsafe_allow_html=True,
         )
 
-    # -----------------------------------------
+    # =====================================================
     # MAIN CONTENT
-    # -----------------------------------------
+    # =====================================================
 
-    main_left, main_right = st.columns(
-        [2, 1]
-    )
+    main_left, main_right = st.columns([2, 1])
 
     with main_left:
 
@@ -1103,7 +1106,9 @@ if st.session_state.page == "dashboard":
             unsafe_allow_html=True,
         )
 
+        # =================================================
         # QUICK ACTIONS
+        # =================================================
 
         st.markdown(
             '<div class="section-header">⚡ Quick Actions</div>',
@@ -1151,9 +1156,12 @@ if st.session_state.page == "dashboard":
                     key=f"dashboard_action_{page_name}",
                     use_container_width=True,
                 ):
+
                     go_to(page_name)
 
+        # =================================================
         # TASKS
+        # =================================================
 
         st.markdown(
             '<div class="section-header">📋 Today\'s Tasks</div>',
@@ -1184,10 +1192,13 @@ if st.session_state.page == "dashboard":
             if new_value != is_completed:
 
                 if new_value:
+
                     st.session_state.completed_tasks.add(
                         task_id
                     )
+
                 else:
+
                     st.session_state.completed_tasks.discard(
                         task_id
                     )
@@ -1225,9 +1236,9 @@ if st.session_state.page == "dashboard":
                 unsafe_allow_html=True,
             )
 
-    # -----------------------------------------
+    # =====================================================
     # RIGHT SIDE
-    # -----------------------------------------
+    # =====================================================
 
     with main_right:
 
@@ -1391,6 +1402,10 @@ elif st.session_state.page == "pdf_upload":
                     f"({len(text):,} characters)"
                 )
 
+    # =====================================================
+    # FILE LIST
+    # =====================================================
+
     if st.session_state.uploaded_files:
 
         st.markdown("### 📚 Your Uploaded Files")
@@ -1404,9 +1419,7 @@ elif st.session_state.page == "pdf_upload":
             st.session_state.uploaded_files
         ):
 
-            file_col, delete_col = st.columns(
-                [6, 1]
-            )
+            file_col, delete_col = st.columns([6, 1])
 
             with file_col:
 
@@ -1480,6 +1493,7 @@ elif st.session_state.page == "pdf_upload":
                         if os.path.exists(
                             physical_path
                         ):
+
                             os.remove(
                                 physical_path
                             )
@@ -1510,6 +1524,7 @@ elif st.session_state.page == "pdf_upload":
                     if os.path.exists(
                         physical_path
                     ):
+
                         os.remove(
                             physical_path
                         )
@@ -1601,6 +1616,7 @@ elif st.session_state.page == "smart_chat":
             "📄 Go to Study Materials",
             type="primary",
         ):
+
             go_to("pdf_upload")
 
     else:
@@ -1635,6 +1651,7 @@ elif st.session_state.page == "smart_chat":
             )
 
             with st.chat_message("user"):
+
                 st.markdown(prompt)
 
             with st.chat_message("assistant"):
@@ -1711,6 +1728,7 @@ elif st.session_state.page == "summarizer":
             "📄 Upload Study Material",
             type="primary",
         ):
+
             go_to("pdf_upload")
 
     else:
@@ -1782,6 +1800,7 @@ elif st.session_state.page == "mcq_generator":
             "📄 Upload Study Material",
             type="primary",
         ):
+
             go_to("pdf_upload")
 
     else:
@@ -1861,6 +1880,7 @@ elif st.session_state.page == "important_questions":
             "📄 Upload Study Material",
             type="primary",
         ):
+
             go_to("pdf_upload")
 
     else:
@@ -2107,6 +2127,10 @@ elif st.session_state.page == "study_plan":
             st.success(
                 "✅ Smart study plan generated successfully."
             )
+
+    # =====================================================
+    # DISPLAY PLAN
+    # =====================================================
 
     if st.session_state.study_plan:
 
