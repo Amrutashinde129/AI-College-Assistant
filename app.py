@@ -2530,4 +2530,3 @@ elif st.session_state.page == "settings":
                     "❌ Could not save the profile. "
                     f"Database error: {e}"
                 )
-```
