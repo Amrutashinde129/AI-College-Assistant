@@ -1220,71 +1220,120 @@ elif st.session_state.page == "settings":
     use_container_width=True,
 )
 
-if save_profile:
-    if not new_name.strip():
-        st.error("Please enter your name.")
-    else:
-        try:
-            save_student_profile(
-                new_name.strip(),
-                new_branch.strip(),
-                new_semester.strip(),
-                new_college.strip(),
-                new_exam_date.strftime("%Y-%m-%d"),
-                float(new_hours),
-            )
-
-            st.success("Student profile updated successfully!")
-            st.session_state.page = "dashboard"
-            st.rerun()
-
-        except Exception as e:
-            st.error(
-                f"Could not save the profile. Database error: {e}"
-            )
-        
-
-        if save_profile:
-            if not new_name.strip():
-                st.error("Please enter your name.")
-            else:
-                try:
-                    save_student_profile(
-                        new_name.strip(),
-                        new_branch.strip(),
-                        new_semester.strip(),
-                        new_college.strip(),
-                        new_exam_date.strftime("%Y-%m-%d"),
-                        float(new_hours),
-                    )
-
-                    st.success("Student profile updated successfully.")
-                    st.rerun()
-
-                except Exception as e:
-                    st.error(
-                        "Could not save the profile. "
-                        f"Database error: {e}"
-                    )
-
-    # Profile preview
-    st.markdown("### 👤 Profile Preview")
+elif st.session_state.page == "settings":
 
     st.markdown(
-        f"""
-        <div class="profile-card">
-            <div class="avatar">{safe_html(name[:1].upper())}</div>
-            <div class="profile-name">{safe_html(name)}</div>
-            <div class="profile-meta">💻 {safe_html(branch)}</div>
-            <div class="profile-meta">🎓 {safe_html(semester)}</div>
-            <div class="profile-meta">🏫 {safe_html(college)}</div>
-            <div class="profile-meta">
-                🎯 Exam: {exam_date.strftime("%d %b %Y") if exam_date else "Not Set"}
-            </div>
-            <div class="profile-meta">
-                ⏱️ Daily Study Goal: {study_hours:g} hour(s)
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+        '<h1 class="main-title">⚙️ Student Profile</h1>',
+        unsafe_allow_html=True
     )
+
+    st.markdown(
+        '<p class="subtitle">Manage your academic information and study preferences.</p>',
+        unsafe_allow_html=True
+    )
+
+    # Make sure exam date is valid for Streamlit
+    profile_exam_default = exam_date or (
+        date.today() + timedelta(days=12)
+    )
+
+    if profile_exam_default < date.today():
+        profile_exam_default = date.today() + timedelta(days=12)
+
+    # ---------------------------------------------
+    # PROFILE FORM
+    # ---------------------------------------------
+
+    with st.form("profile_form"):
+
+        p1, p2 = st.columns(2)
+
+        with p1:
+
+            new_name = st.text_input(
+                "👤 Student Name",
+                value=name if name != "Student" else ""
+            )
+
+            new_branch = st.text_input(
+                "💻 Branch",
+                value=branch
+            )
+
+            new_semester = st.text_input(
+                "📚 Semester",
+                value=semester
+            )
+
+        with p2:
+
+            new_college = st.text_input(
+                "🏫 College",
+                value=college if college != "College Not Set" else ""
+            )
+
+            new_exam_date = st.date_input(
+                "📅 Exam Date",
+                value=profile_exam_default,
+                min_value=date.today(),
+                max_value=date.today() + timedelta(days=3650)
+            )
+
+            new_hours = st.number_input(
+                "⏱️ Daily Study Goal (Hours)",
+                min_value=0.0,
+                max_value=12.0,
+                value=max(
+                    0.0,
+                    min(study_hours, 12.0)
+                ),
+                step=0.5
+            )
+
+        # ---------------------------------------------
+        # SAVE BUTTON
+        # ---------------------------------------------
+
+        save_profile = st.form_submit_button(
+            "💾 Save Student Profile",
+            use_container_width=True
+        )
+
+    # ---------------------------------------------
+    # SAVE PROFILE
+    # ---------------------------------------------
+
+    if save_profile:
+
+        if not new_name.strip():
+
+            st.error("⚠️ Please enter your name.")
+
+        else:
+
+            try:
+
+                save_student_profile(
+                    new_name.strip(),
+                    new_branch.strip(),
+                    new_semester.strip(),
+                    new_college.strip(),
+                    new_exam_date.strftime("%Y-%m-%d"),
+                    float(new_hours)
+                )
+
+                st.success(
+                    "✅ Student profile saved successfully!"
+                )
+
+                # Return to dashboard
+                st.session_state.page = "dashboard"
+
+                st.rerun()
+
+            except Exception as e:
+
+                st.error(
+                    f"❌ Could not save the profile. "
+                    f"Database error: {e}"
+                )
