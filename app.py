@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import re
 from datetime import datetime, date, timedelta
 
 # =========================================================
@@ -105,8 +106,7 @@ def safe_html(value):
 
 def render_html(content):
     """
-    Render custom HTML using Streamlit's HTML renderer.
-    This prevents HTML from appearing as raw source code.
+    Render custom HTML using Streamlit HTML renderer.
     """
     st.html(content)
 
@@ -147,6 +147,304 @@ def create_default_tasks():
             "subject": "Smart Learning",
         },
     ]
+
+
+# =========================================================
+# IMPORTANT QUESTIONS FORMATTER
+# =========================================================
+
+def render_important_questions(text):
+    """
+    Converts AI-generated important-question text into
+    separate attractive question cards.
+    """
+
+    if not text:
+        st.warning("No questions were generated.")
+        return
+
+    # Remove code fences
+    text = re.sub(
+        r"```(?:markdown|text)?",
+        "",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    text = text.replace("```", "").strip()
+
+    # -----------------------------------------------------
+    # Extract sections
+    # -----------------------------------------------------
+
+    short_match = re.search(
+        r"(?:###\s*)?(?:\*\*)?\s*1\.\s*Short Answer Questions.*?"
+        r"(?=(?:###\s*)?(?:\*\*)?\s*2\.\s*Long Answer Questions|$)",
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    long_match = re.search(
+        r"(?:###\s*)?(?:\*\*)?\s*2\.\s*Long Answer Questions.*",
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    short_text = short_match.group(0) if short_match else ""
+    long_text = long_match.group(0) if long_match else ""
+
+    # If AI did not create sections
+    if not short_text and not long_text:
+        short_text = text
+
+    # -----------------------------------------------------
+    # Extract individual questions
+    # -----------------------------------------------------
+
+    def extract_questions(section_text):
+
+        questions = []
+
+        pattern = re.compile(
+            r"(?:####\s*)?\*?\*?Question\s*(\d+)\*?\*?"
+            r"(.*?)(?=(?:####\s*)?\*?\*?Question\s*\d+|$)",
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+        matches = pattern.findall(section_text)
+
+        for number, content in matches:
+
+            content = content.strip()
+
+            # Question
+            q_match = re.search(
+                r"\*?\*?Question:\s*\*?\*?(.*?)(?="
+                r"\*?\*?Topic:|\*?\*?Priority:|$)",
+                content,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+
+            # Topic
+            topic_match = re.search(
+                r"\*?\*?Topic:\s*\*?\*?(.*?)(?="
+                r"\*?\*?Priority:|$)",
+                content,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+
+            # Priority
+            priority_match = re.search(
+                r"\*?\*?Priority:\s*\*?\*?(.*?)(?=\n|$)",
+                content,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+
+            if q_match:
+                question = q_match.group(1).strip()
+            else:
+                question = content
+
+            if topic_match:
+                topic = topic_match.group(1).strip()
+            else:
+                topic = "General"
+
+            if priority_match:
+                priority = priority_match.group(1).strip()
+            else:
+                priority = "Medium"
+
+            # Remove Markdown
+            question = re.sub(
+                r"\*\*",
+                "",
+                question
+            )
+
+            topic = re.sub(
+                r"\*\*",
+                "",
+                topic
+            )
+
+            priority = re.sub(
+                r"\*\*",
+                "",
+                priority
+            )
+
+            # Remove unwanted bullets
+            question = re.sub(
+                r"^[\-\*\•\s]+",
+                "",
+                question
+            )
+
+            topic = re.sub(
+                r"^[\-\*\•\s]+",
+                "",
+                topic
+            )
+
+            priority = re.sub(
+                r"^[\-\*\•\s]+",
+                "",
+                priority
+            )
+
+            # Normalize spaces
+            question = re.sub(
+                r"\s+",
+                " ",
+                question
+            ).strip()
+
+            topic = re.sub(
+                r"\s+",
+                " ",
+                topic
+            ).strip()
+
+            priority = re.sub(
+                r"\s+",
+                " ",
+                priority
+            ).strip()
+
+            questions.append(
+                {
+                    "number": number,
+                    "question": question,
+                    "topic": topic,
+                    "priority": priority,
+                }
+            )
+
+        return questions
+
+    short_questions = extract_questions(short_text)
+    long_questions = extract_questions(long_text)
+
+    # -----------------------------------------------------
+    # Render section
+    # -----------------------------------------------------
+
+    def render_section(title, icon, questions):
+
+        if not questions:
+            return
+
+        render_html(
+            f"""
+            <div class="question-section-title">
+
+                <div>
+                    {icon}
+                    {title}
+                </div>
+
+                <span class="question-count">
+                    {len(questions)} Questions
+                </span>
+
+            </div>
+            """
+        )
+
+        for q in questions:
+
+            priority = q["priority"].lower()
+
+            if "high" in priority:
+
+                priority_class = "priority-high"
+                priority_icon = "🔴"
+
+            elif "medium" in priority:
+
+                priority_class = "priority-medium"
+                priority_icon = "🟡"
+
+            else:
+
+                priority_class = "priority-low"
+                priority_icon = "🟢"
+
+            render_html(
+                f"""
+                <div class="important-question-card">
+
+                    <div class="question-top">
+
+                        <div class="question-number">
+                            Q{safe_html(q["number"])}
+                        </div>
+
+                        <div class="question-priority {priority_class}">
+                            {priority_icon}
+                            {safe_html(q["priority"])}
+                        </div>
+
+                    </div>
+
+                    <div class="question-text">
+                        {safe_html(q["question"])}
+                    </div>
+
+                    <div class="question-topic">
+                        📚 <b>Topic:</b>
+                        {safe_html(q["topic"])}
+                    </div>
+
+                </div>
+                """
+            )
+
+    # -----------------------------------------------------
+    # Display sections
+    # -----------------------------------------------------
+
+    render_section(
+        "Short Answer Questions",
+        "📝",
+        short_questions,
+    )
+
+    render_section(
+        "Long Answer Questions",
+        "📖",
+        long_questions,
+    )
+
+    # -----------------------------------------------------
+    # Fallback
+    # -----------------------------------------------------
+
+    if not short_questions and not long_questions:
+
+        render_html(
+            f"""
+            <div class="card">
+
+                <div style="
+                    font-weight:700;
+                    color:#dc2626;
+                    margin-bottom:10px;
+                ">
+                    ⚠️ Could not format the generated questions.
+                </div>
+
+                <div style="
+                    color:#475569;
+                    white-space:pre-wrap;
+                ">
+                    {safe_html(text)}
+                </div>
+
+            </div>
+            """
+        )
 
 
 # =========================================================
@@ -598,6 +896,133 @@ footer {
 
 
 /* =====================================================
+   IMPORTANT QUESTIONS
+===================================================== */
+
+.question-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #1e293b;
+
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+.question-count {
+    background: #eef2ff;
+    color: #4f46e5;
+
+    padding: 6px 12px;
+    border-radius: 20px;
+
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.important-question-card {
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+
+    padding: 20px;
+    margin-bottom: 14px;
+
+    box-shadow:
+        0 3px 10px rgba(15,23,42,0.04);
+
+    transition: 0.2s;
+}
+
+.important-question-card:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 25px rgba(15,23,42,0.08);
+
+    border-color: #c7d2fe;
+}
+
+.question-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 12px;
+}
+
+.question-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 45px;
+    height: 34px;
+
+    padding: 0 12px;
+
+    background: #eef2ff;
+    color: #4f46e5;
+
+    border-radius: 9px;
+
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.question-priority {
+    padding: 6px 11px;
+
+    border-radius: 20px;
+
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.priority-high {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.priority-medium {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.priority-low {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.question-text {
+    color: #1e293b;
+
+    font-size: 1rem;
+    font-weight: 700;
+
+    line-height: 1.65;
+
+    margin-bottom: 14px;
+}
+
+.question-topic {
+    background: #f8fafc;
+
+    border-radius: 9px;
+
+    padding: 9px 12px;
+
+    color: #64748b;
+
+    font-size: 0.82rem;
+}
+
+
+/* =====================================================
    BUTTONS
 ===================================================== */
 
@@ -651,6 +1076,15 @@ footer {
     .dash-header {
         padding: 24px;
     }
+
+    .question-section-title {
+        font-size: 1.1rem;
+    }
+
+    .question-count {
+        font-size: 0.68rem;
+    }
+
 }
 
 </style>
@@ -1872,14 +2306,15 @@ elif st.session_state.page == "important_questions":
                         num_questions,
                     )
 
-                    render_html(
-                        f"""
-                        <div class="card">
-                            {questions}
-                        </div>
-                        """
+                    # =================================================
+                    # FIXED DISPLAY
+                    # =================================================
+
+                    render_important_questions(
+                        questions
                     )
 
+                    # Save original AI response
                     save_chat(
                         f"Generate {num_questions} important questions",
                         questions,
