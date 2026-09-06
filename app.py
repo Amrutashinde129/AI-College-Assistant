@@ -16,7 +16,7 @@ from db_manager import (
 )
 
 from utils.pdf_processor import extract_text_from_pdf
-from utils.ollama_client import ask_ollama
+from utils.ollama_client import ask_gemini
 from utils.mcq_generator import generate_mcqs
 from utils.important_questions import generate_important_questions
 from utils.rag import answer_question
@@ -84,11 +84,57 @@ defaults = {
     "vector_store": None,
     "completed_tasks": set(),
     "generated_tasks": [],
+    "logged_out": False,
 }
 
 for key, value in defaults.items():
     if key not in st.session_state:
         st.session_state[key] = value
+
+
+# =========================================================
+# LOGGED-OUT SCREEN
+# =========================================================
+# Streamlit has no built-in authentication in this app. This provides
+# a real session-level sign-out state: after logout, the application
+# stops rendering the dashboard until the user signs in again.
+if st.session_state.get("logged_out", False):
+    st.markdown(
+        """
+        <div style="
+            max-width:620px;
+            margin:10vh auto 0 auto;
+            padding:42px 36px;
+            text-align:center;
+            border-radius:20px;
+            border:1px solid rgba(100,116,139,.18);
+            background:rgba(255,255,255,.96);
+            box-shadow:0 10px 35px rgba(15,23,42,.10);
+        ">
+            <div style="font-size:3rem;">🎓</div>
+            <h1 style="margin-bottom:8px;">You are signed out</h1>
+            <p style="color:#64748b;font-size:1.05rem;">
+                Your current Streamlit session has been cleared.
+                Sign in again to continue using AI College Assistant.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.write("")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button(
+            "🔐 Sign In / Continue",
+            key="signin_button",
+            use_container_width=True,
+        ):
+            st.session_state["logged_out"] = False
+            st.session_state["page"] = "dashboard"
+            st.rerun()
+
+    st.stop()
 
 
 # =========================================================
@@ -1282,6 +1328,39 @@ with st.sidebar:
     )
 
 
+    # ---------------------------------------------------------
+    # LOGOUT / SIGN OUT
+    # ---------------------------------------------------------
+    st.markdown("---")
+
+    if st.button(
+        "🚪 Logout / Sign Out",
+        key="logout_button",
+        use_container_width=True,
+    ):
+        # Clear the current Streamlit session data.
+        # The saved student profile and chat history in SQLite are kept.
+        keys_to_clear = [
+            "page",
+            "chat_messages",
+            "rag_chat",
+            "study_plan",
+            "uploaded_files",
+            "pdf_text",
+            "vector_store",
+            "completed_tasks",
+            "generated_tasks",
+        ]
+
+        for key in keys_to_clear:
+            st.session_state.pop(key, None)
+
+        # Mark the current browser session as signed out and reset page.
+        st.session_state["logged_out"] = True
+        st.session_state["page"] = "dashboard"
+        st.rerun()
+
+
 # =========================================================
 # PAGE 1 — DASHBOARD
 # =========================================================
@@ -2076,7 +2155,7 @@ elif st.session_state.page == "smart_chat":
 
                         else:
 
-                            response = ask_ollama(
+                            response = ask_gemini(
                                 "Answer based on this study material:\n"
                                 f"{st.session_state.pdf_text}\n\n"
                                 f"Question: {prompt}"
@@ -2152,13 +2231,9 @@ elif st.session_state.page == "summarizer":
                         st.session_state.pdf_text
                     )
 
-                    render_html(
-                        f"""
-                        <div class="card">
-                            {summary}
-                        </div>
-                        """
-                    )
+                    with st.container():
+                        st.markdown("### 📝 Generated Study Notes")
+                        st.markdown(summary)
 
                     save_chat(
                         "Generate study notes",
@@ -2229,13 +2304,9 @@ elif st.session_state.page == "mcq_generator":
                         num_questions,
                     )
 
-                    render_html(
-                        f"""
-                        <div class="card">
-                            {mcqs}
-                        </div>
-                        """
-                    )
+                    with st.container():
+                        st.markdown("### ✅ Generated MCQs")
+                        st.markdown(mcqs)
 
                     save_chat(
                         f"Generate {num_questions} MCQs",
